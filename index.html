@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>海外預金 税務シミュレーター</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4F1E9;
+    --ink:#1A2740;
+    --card:#FFFFFF;
+    --indigo:#2C4A7C;
+    --seal:#AE3A2E;
+    --moss:#3B6B4C;
+    --brass:#96793C;
+    --muted:#6E6656;
+    --line:#E5DFD0;
+    --line-strong:#D4CBB4;
+    --mincho:'Shippori Mincho', serif;
+    --sans:'Hiragino Kaku Gothic ProN','Hiragino Sans','Yu Gothic',Meiryo,sans-serif;
+    --mono:'Roboto Mono', ui-monospace, 'SFMono-Regular', monospace;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:var(--sans);line-height:1.7;font-size:15px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1060px;margin:0 auto;padding:clamp(20px,4vw,52px) clamp(16px,4vw,32px) 80px;}
+
+  /* ---------- header ---------- */
+  header{margin-bottom:34px;}
+  .eyebrow{
+    font-family:var(--mono);font-size:12px;letter-spacing:.22em;
+    color:var(--brass);text-transform:uppercase;margin:0 0 14px;
+    display:flex;align-items:center;gap:12px;
+  }
+  .eyebrow::after{content:"";flex:1;height:1px;background:var(--line-strong);}
+  h1{
+    font-family:var(--mincho);font-weight:700;
+    font-size:clamp(28px,5vw,44px);line-height:1.24;margin:0 0 14px;
+    letter-spacing:.01em;
+  }
+  .lede{max-width:60ch;color:var(--muted);margin:0 0 16px;font-size:15.5px;}
+  .assume{
+    display:flex;flex-wrap:wrap;gap:8px 10px;font-size:12.5px;
+    color:var(--muted);font-family:var(--mono);
+  }
+  .assume span{
+    border:1px solid var(--line-strong);padding:3px 10px;border-radius:2px;
+    background:rgba(255,255,255,.5);
+  }
+
+  /* ---------- section scaffold ---------- */
+  .step{margin-top:34px;}
+  .step-head{display:flex;align-items:baseline;gap:14px;margin-bottom:16px;}
+  .step-num{
+    font-family:var(--mono);font-size:13px;font-weight:500;color:#fff;
+    background:var(--indigo);width:30px;height:30px;border-radius:50%;
+    display:grid;place-items:center;flex:none;letter-spacing:0;
+    transform:translateY(2px);
+  }
+  .step-title{font-family:var(--mincho);font-weight:700;font-size:20px;margin:0;}
+  .step-sub{color:var(--muted);font-size:13px;margin:2px 0 0;}
+
+  .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:22px;align-items:start;}
+  @media(max-width:760px){.grid{grid-template-columns:1fr;}}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);
+    border-radius:6px;padding:22px 22px 24px;
+  }
+  .card + .card{margin-top:0;}
+  .card-label{
+    font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--brass);margin:0 0 16px;
+    padding-bottom:9px;border-bottom:1px solid var(--line);
+  }
+
+  /* ---------- fields ---------- */
+  .field{margin-bottom:16px;}
+  .field:last-child{margin-bottom:0;}
+  .field > label,.field .lab{
+    display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--ink);
+  }
+  .req{color:var(--seal);font-weight:700;margin-right:3px;}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.5;}
+  input[type=number],input[type=text],select{
+    width:100%;font-family:var(--sans);font-size:15px;color:var(--ink);
+    background:#FCFBF7;border:1px solid var(--line-strong);border-radius:4px;
+    padding:9px 11px;transition:border-color .15s,box-shadow .15s;
+  }
+  input[type=number]{font-family:var(--mono);text-align:right;}
+  input:focus,select:focus{
+    outline:none;border-color:var(--indigo);
+    box-shadow:0 0 0 3px rgba(44,74,124,.14);
+  }
+  .with-unit{position:relative;}
+  .with-unit .unit{
+    position:absolute;right:11px;top:50%;transform:translateY(-50%);
+    font-size:12px;color:var(--muted);pointer-events:none;font-family:var(--sans);
+  }
+  .with-unit input{padding-right:38px;}
+
+  /* segmented toggle */
+  .seg{display:flex;border:1px solid var(--line-strong);border-radius:4px;overflow:hidden;}
+  .seg input{position:absolute;opacity:0;width:0;height:0;}
+  .seg label{
+    flex:1;text-align:center;padding:8px 6px;font-size:14px;cursor:pointer;
+    background:#FCFBF7;color:var(--muted);transition:background .12s,color .12s;
+    user-select:none;
+  }
+  .seg label + label{border-left:1px solid var(--line-strong);}
+  .seg input:checked + label{background:var(--indigo);color:#fff;font-weight:600;}
+  .seg input:focus-visible + label{box-shadow:inset 0 0 0 2px rgba(44,74,124,.4);}
+
+  /* country info */
+  .cinfo{margin-top:14px;padding:13px 15px;background:#FBF9F2;border:1px solid var(--line);border-radius:4px;}
+  .cinfo-row{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:13px;}
+  .cinfo-row + .cinfo-row{margin-top:8px;}
+  .badge{
+    font-family:var(--mono);font-size:11px;padding:2px 9px;border-radius:999px;
+    border:1px solid currentColor;letter-spacing:.04em;
+  }
+  .badge.yes{color:var(--moss);}
+  .badge.no{color:var(--seal);}
+  .badge.na{color:var(--muted);}
+  .cnote{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.55;}
+  .rate-big{font-family:var(--mono);font-size:20px;font-weight:500;color:var(--indigo);}
+
+  /* ---------- ledger (results) ---------- */
+  .ledger{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 22px 20px;}
+  .ledger .card-label{border-bottom:none;margin-bottom:4px;padding-top:14px;}
+  .lrow{
+    display:flex;align-items:baseline;gap:10px;
+    padding:9px 0;border-bottom:1px dotted var(--line-strong);
+  }
+  .lrow:last-child{border-bottom:none;}
+  .lrow .k{font-size:13px;color:var(--muted);white-space:nowrap;}
+  .lrow .leader{flex:1;border-bottom:1px dotted #D9D0BA;transform:translateY(-3px);min-width:12px;}
+  .lrow .v{font-family:var(--mono);font-size:15px;text-align:right;white-space:nowrap;}
+  .lrow.em .k{color:var(--ink);font-weight:600;}
+  .lrow.em .v{font-size:17px;font-weight:500;}
+  .lrow.total{border-top:2px solid var(--ink);margin-top:4px;padding-top:12px;border-bottom:none;}
+  .lrow.total .k{font-weight:700;color:var(--ink);font-family:var(--mincho);}
+  .lrow.total .v{font-size:19px;font-weight:500;color:var(--seal);}
+  .lrow.credit .v{color:var(--moss);}
+  .lgroup-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);margin:16px 0 2px;}
+
+  /* ---------- verdict ---------- */
+  .verdict{
+    margin-top:26px;border-radius:6px;padding:24px 26px;
+    display:flex;gap:20px;align-items:center;
+    border:1.5px solid;background:var(--card);
+  }
+  .verdict.go{border-color:var(--moss);}
+  .verdict.file{border-color:var(--seal);}
+  .stamp{
+    flex:none;width:92px;height:92px;border-radius:6px;display:grid;place-items:center;
+    font-family:var(--mincho);font-weight:700;text-align:center;line-height:1.15;
+    border:2.5px solid;font-size:22px;letter-spacing:.04em;position:relative;
+    transform:rotate(-3deg);
+  }
+  .verdict.go .stamp{color:var(--moss);border-color:var(--moss);background:rgba(59,107,76,.05);}
+  .verdict.file .stamp{color:var(--seal);border-color:var(--seal);background:rgba(174,58,46,.05);}
+  @media(max-width:520px){.verdict{flex-direction:column;text-align:center;}.stamp{width:84px;height:84px;font-size:20px;}}
+  .verdict h3{margin:0 0 6px;font-family:var(--mincho);font-size:20px;}
+  .verdict.go h3{color:var(--moss);}
+  .verdict.file h3{color:var(--seal);}
+  .verdict p{margin:0;color:var(--muted);font-size:14px;}
+
+  /* prompt when incomplete */
+  .prompt{
+    margin-top:26px;border:1px dashed var(--line-strong);border-radius:6px;
+    padding:20px;color:var(--muted);font-size:14px;background:rgba(255,255,255,.4);
+  }
+
+  /* ---------- explanation (stage 2) ---------- */
+  .reveal{margin-top:26px;}
+  .explain h4{font-family:var(--mincho);font-size:16px;margin:0 0 12px;}
+  .clist{list-style:none;padding:0;margin:0;counter-reset:c;}
+  .clist li{
+    position:relative;padding:12px 0 12px 40px;border-bottom:1px solid var(--line);
+    font-size:14px;color:var(--ink);counter-increment:c;
+  }
+  .clist li:last-child{border-bottom:none;}
+  .clist li::before{
+    content:counter(c);position:absolute;left:0;top:12px;
+    font-family:var(--mono);font-size:12px;color:#fff;background:var(--brass);
+    width:24px;height:24px;border-radius:50%;display:grid;place-items:center;
+  }
+  .clist strong{color:var(--seal);}
+
+  .erate{
+    margin-top:16px;padding:14px 18px;background:#FBF9F2;border:1px solid var(--line);
+    border-radius:4px;display:flex;justify-content:space-between;align-items:center;gap:12px;
+  }
+  .erate .lab2{font-size:13px;color:var(--muted);}
+  .erate .val2{font-family:var(--mono);font-size:24px;color:var(--seal);font-weight:500;}
+
+  .callout{
+    margin-top:14px;font-size:12.5px;color:var(--indigo);background:rgba(44,74,124,.06);
+    border-left:3px solid var(--indigo);padding:11px 14px;border-radius:0 4px 4px 0;line-height:1.6;
+  }
+
+  /* ---------- disclaimer ---------- */
+  .disclaimer{margin-top:44px;border-top:1px solid var(--line-strong);padding-top:22px;}
+  .disclaimer h5{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--seal);margin:0 0 12px;}
+  .disclaimer ul{margin:0;padding-left:1.1em;color:var(--muted);font-size:12.5px;line-height:1.85;}
+  footer .credit{margin-top:24px;font-family:var(--mono);font-size:11px;color:var(--brass);letter-spacing:.08em;}
+
+  .hidden{display:none !important;}
+  @media(prefers-reduced-motion:no-preference){
+    .fade{animation:fade .35s ease both;}
+    @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  }
+  a{color:var(--indigo);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">海外預金 税務シミュレーター</p>
+    <h1>海外の預金にかかる税金と<br>確定申告の要否を、概算する。</h1>
+    <p class="lede">日本在住で海外に外貨預金を持つ方向けに、利息・現地の源泉税・日本での確定申告の要否をその場で試算します。国を選ぶと源泉税率が自動で入ります。</p>
+    <div class="assume">
+      <span>円転しない前提</span><span>単利計算</span><span>概算・専門家相談前提</span>
+    </div>
+  </header>
+
+  <!-- ============ STAGE 1 ============ -->
+  <section class="step">
+    <div class="step-head">
+      <div class="step-num">1</div>
+      <div>
+        <h2 class="step-title">利息の概算と申告要否の判定</h2>
+        <p class="step-sub">預金の情報を入力すると、利息・源泉税・判定が自動で更新されます。</p>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- inputs -->
+      <div class="card">
+        <p class="card-label">入力項目</p>
+
+        <div class="field">
+          <label for="country"><span class="req">＊</span>預入国（預金を保有している国・地域）</label>
+          <select id="country"></select>
+        </div>
+
+        <div class="field hidden" id="manualRateField">
+          <label for="manualRate">源泉税率（手入力）</label>
+          <div class="with-unit">
+            <input type="number" id="manualRate" value="10" step="0.1" min="0" max="100">
+            <span class="unit">％</span>
+          </div>
+          <p class="hint">リストにない国の非居住者向け源泉税率を入力してください。</p>
+        </div>
+
+        <div class="field">
+          <label for="deposit"><span class="req">＊</span>預金額（現地通貨）</label>
+          <input type="number" id="deposit" value="10000" min="0" step="100">
+        </div>
+
+        <div class="field">
+          <label for="rate"><span class="req">＊</span>年利</label>
+          <div class="with-unit">
+            <input type="number" id="rate" value="5" min="0" step="0.01">
+            <span class="unit">％</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="years"><span class="req">＊</span>預入期間</label>
+          <div class="with-unit">
+            <input type="number" id="years" value="1" min="0" step="0.5">
+            <span class="unit">年</span>
+          </div>
+          <p class="hint">半年は 0.5。単利で計算します。</p>
+        </div>
+
+        <div class="field">
+          <label for="fx"><span class="req">＊</span>想定為替レート（現地通貨1単位＝◯円）</label>
+          <div class="with-unit">
+            <input type="number" id="fx" value="150" min="0" step="0.0001">
+            <span class="unit">円</span>
+          </div>
+          <p class="hint">例：1米ドル＝150円なら 150、1タイバーツ＝4.3円なら 4.3。</p>
+        </div>
+
+        <div class="field">
+          <span class="lab"><span class="req">＊</span>会社員として給与収入は2,000万円以下ですか？</span>
+          <div class="seg">
+            <input type="radio" name="salaryYN" id="salYes" value="はい" checked>
+            <label for="salYes">はい</label>
+            <input type="radio" name="salaryYN" id="salNo" value="いいえ">
+            <label for="salNo">いいえ</label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="side"><span class="req">＊</span>副業などの別収入（年間の所得金額）</label>
+          <div class="with-unit">
+            <input type="number" id="side" value="0" min="0" step="10000">
+            <span class="unit">円</span>
+          </div>
+          <p class="hint">収入から必要経費を引いた所得。なければ 0 のまま。利息と合算して20万円ラインを判定します。</p>
+        </div>
+      </div>
+
+      <!-- results -->
+      <div>
+        <div class="ledger">
+          <p class="card-label">利息と源泉税</p>
+          <div class="lrow"><span class="k">税引前利息（現地通貨）</span><span class="leader"></span><span class="v" id="r_pretaxLocal">—</span></div>
+          <div class="lrow"><span class="k">現地の源泉税（現地通貨）</span><span class="leader"></span><span class="v" id="r_taxLocal">—</span></div>
+          <div class="lrow"><span class="k">税引後 受取利息（現地通貨）</span><span class="leader"></span><span class="v" id="r_afterLocal">—</span></div>
+          <p class="lgroup-label">円換算</p>
+          <div class="lrow em"><span class="k">税引前利息</span><span class="leader"></span><span class="v" id="r_pretaxYen">—</span></div>
+          <div class="lrow"><span class="k">現地の源泉税</span><span class="leader"></span><span class="v" id="r_taxYen">—</span></div>
+          <div class="lrow em"><span class="k">税引後 手取り</span><span class="leader"></span><span class="v" id="r_afterYen">—</span></div>
+        </div>
+
+        <div class="cinfo" id="cinfo">
+          <div class="cinfo-row">
+            <span class="k" style="color:var(--muted);font-size:13px;">適用される源泉税率</span>
+            <span class="rate-big" id="c_rate">—</span>
+          </div>
+          <div class="cinfo-row">
+            <span class="k" style="color:var(--muted);font-size:13px;">日本との租税条約</span>
+            <span class="badge na" id="c_treaty">—</span>
+          </div>
+          <p class="cnote" id="c_note"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- verdict / prompt -->
+    <div class="prompt hidden" id="prompt">＊印の必須項目をすべて入力すると、判定が表示されます。</div>
+    <div class="verdict hidden" id="verdict">
+      <div class="stamp" id="stamp"></div>
+      <div>
+        <h3 id="verdictTitle"></h3>
+        <p id="verdictReason"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 2 (申告不要) ============ -->
+  <section class="step reveal hidden" id="stage2">
+    <div class="step-head">
+      <div class="step-num" style="background:var(--moss)">2</div>
+      <div>
+        <h2 class="step-title">申告不要と判定された方へ</h2>
+        <p class="step-sub">どんなときに税金・申告が発生するかを確認しておきましょう。</p>
+      </div>
+    </div>
+    <div class="card explain">
+      <h4>次のいずれかに当てはまると「申告が必要」に変わります</h4>
+      <ul class="clist">
+        <li>利息（円換算）と副業などの<strong>別収入の合計が年間20万円を超えた</strong>とき。期間を延ばす・預金額を増やす・金利や為替が上振れすると、20万円ラインを超えます。</li>
+        <li>別収入（副業・不動産・他の投資益など）がある場合は<strong>利息と合算して判定</strong>します。利息単独で20万円以下でも、合算で超えることがあります。</li>
+        <li><strong>給与収入が2,000万円を超える</strong>とき。金額にかかわらず確定申告が必要です。</li>
+        <li><strong>住民税は別扱い</strong>です。所得税の20万円ルールは住民税には適用されません。所得税が不要でも住民税の申告が必要な場合があります。</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 3 (要申告) ============ -->
+  <section class="step reveal hidden" id="stage3">
+    <div class="step-head">
+      <div class="step-num" style="background:var(--seal)">3</div>
+      <div>
+        <h2 class="step-title">日本の所得税・外国税額控除の概算</h2>
+        <p class="step-sub">利子は日本で総合課税（累進）になります。追加で数点を入力してください。</p>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:0;margin-bottom:18px;">
+      前提：社会保険料＝給与収入×15％・基礎控除48万円で所得控除を自動見積り／住民税は一律10％・復興特別所得税2.1％／条約の限度税率を超えて現地徴収された分は日本で控除できない場合があります。あくまで概算です。
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <p class="card-label">追加の入力項目</p>
+
+        <div class="field">
+          <label for="salary"><span class="req">＊</span>給与収入（額面・年間）</label>
+          <div class="with-unit">
+            <input type="number" id="salary" value="6000000" min="0" step="100000">
+            <span class="unit">円</span>
+          </div>
+          <p class="hint">源泉徴収票の「支払金額」。</p>
+        </div>
+
+        <div class="field">
+          <span class="lab"><span class="req">＊</span>所得控除の見積り方法</span>
+          <div class="seg">
+            <input type="radio" name="dedMode" id="dedAuto" value="auto" checked>
+            <label for="dedAuto">自動</label>
+            <input type="radio" name="dedMode" id="dedManual" value="manual">
+            <label for="dedManual">手入力</label>
+          </div>
+          <p class="hint">ライトに使う方は「自動」でOK。</p>
+        </div>
+
+        <div class="field hidden" id="manualDedField">
+          <label for="manualDed">所得控除の合計（手入力）</label>
+          <div class="with-unit">
+            <input type="number" id="manualDed" value="0" min="0" step="10000">
+            <span class="unit">円</span>
+          </div>
+          <p class="hint">源泉徴収票の各種控除の合計など。</p>
+        </div>
+
+        <div class="field">
+          <label for="other"><span class="req">＊</span>その他の所得（副業・不動産等の所得金額）</label>
+          <div class="with-unit">
+            <input type="number" id="other" value="0" min="0" step="10000">
+            <span class="unit">円</span>
+          </div>
+          <p class="hint">なければ 0 のまま。</p>
+        </div>
+
+        <div class="field" style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line);">
+          <span class="lab" style="color:var(--muted);">第1段階から自動取得</span>
+          <div class="cinfo" style="margin-top:6px;">
+            <div class="cinfo-row"><span style="font-size:13px;color:var(--muted);">利子所得（円換算）</span><span class="v" style="font-family:var(--mono)" id="s3_interest">—</span></div>
+            <div class="cinfo-row"><span style="font-size:13px;color:var(--muted);">現地の源泉税（円換算）</span><span class="v" style="font-family:var(--mono)" id="s3_localtax">—</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="ledger">
+          <p class="card-label">この預金にかかる税と手取り</p>
+          <div class="lrow"><span class="k">① 現地の源泉税（支払済）</span><span class="leader"></span><span class="v" id="r_s1">—</span></div>
+          <div class="lrow"><span class="k">② 日本の利子課税（控除前）</span><span class="leader"></span><span class="v" id="r_s2">—</span></div>
+          <div class="lrow credit"><span class="k">③ 外国税額控除（相殺）</span><span class="leader"></span><span class="v" id="r_s3">—</span></div>
+          <div class="lrow"><span class="k">④ 日本での実質追加負担</span><span class="leader"></span><span class="v" id="r_s4">—</span></div>
+          <div class="lrow total"><span class="k">⑤ この預金の税 合計</span><span class="leader"></span><span class="v" id="r_s5">—</span></div>
+          <div class="lrow em" style="margin-top:6px;"><span class="k">⑥ 税引後の最終手取り</span><span class="leader"></span><span class="v" id="r_s6" style="color:var(--moss)">—</span></div>
+        </div>
+
+        <div class="erate">
+          <span class="lab2">利子に対する実効税率</span>
+          <span class="val2" id="r_erate">—</span>
+        </div>
+
+        <div class="callout" id="carryNote">
+          今年の控除枠で引ききれなかった現地源泉税（繰越額 <span id="r_carry" style="font-family:var(--mono)">—</span>）は、翌年以降の確定申告で最長3年間、日本の税額からマイナスできる可能性があります（毎年の申告が必要）。
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DISCLAIMER ============ -->
+  <footer class="disclaimer">
+    <h5>免責事項</h5>
+    <ul>
+      <li>本ツールは概算シミュレーションであり、正式な税務計算・税務書類ではありません。</li>
+      <li>作成者は税理士ではなく、税務・法務上の助言を行うものではありません。</li>
+      <li>各国の源泉税率・租税条約は国により異なり、随時変動します。税率は代表値で、預金の種類・条約の適用条件・現地の還付手続等により実際の税額は変わります。</li>
+      <li>為替差益（円転時の損益）は考慮していません（円転しない前提）。</li>
+      <li>最終的な判断・申告手続きは、必ず税理士等の専門家にご相談ください。</li>
+    </ul>
+    <p class="credit">出典：財務省 租税条約一覧・OECDモデル・各国国内法（2026年時点／要確認）</p>
+  </footer>
+
+</div>
+
+<script>
+"use strict";
+
+/* ---------- country tax master ---------- */
+const COUNTRIES = [
+  {name:"カンボジア",     rate:0.14, treaty:"無", note:"日本と租税条約なし・現地国内法の非居住者源泉税率。"},
+  {name:"米国",           rate:0.00, treaty:"有", note:"条約上、利子は原則免税（例外10%）。米国は預金利子の非居住者免税もあり。"},
+  {name:"中国",           rate:0.10, treaty:"有", note:"OECD標準の限度税率。"},
+  {name:"オーストラリア", rate:0.10, treaty:"有", note:""},
+  {name:"タイ",           rate:0.10, treaty:"有", note:"条約上10〜25%。預金の種類で異なり要確認（高めに出る場合あり）。"},
+  {name:"英国",           rate:0.00, treaty:"有", note:"条約上、利子は原則免税。"},
+  {name:"カナダ",         rate:0.10, treaty:"有", note:""},
+  {name:"シンガポール",   rate:0.10, treaty:"有", note:""},
+  {name:"ドイツ",         rate:0.00, treaty:"有", note:"条約上、利子は原則免税。"},
+  {name:"韓国",           rate:0.10, treaty:"有", note:""},
+  {name:"香港",           rate:0.10, treaty:"有", note:""},
+  {name:"マレーシア",     rate:0.10, treaty:"有", note:""},
+  {name:"フランス",       rate:0.10, treaty:"有", note:"一部免税あり。"},
+  {name:"ベトナム",       rate:0.10, treaty:"有", note:""},
+  {name:"台湾",           rate:0.10, treaty:"有", note:"日台民間租税取決めに基づく。"},
+  {name:"フィリピン",     rate:0.10, treaty:"有", note:"一部15%。"},
+  {name:"その他（手入力）", rate:null, treaty:"—", note:"リストにない国。源泉税率を手入力してください。"},
+];
+const FILING_LINE = 200000;
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const yen  = n => "¥" + Math.round(n).toLocaleString("ja-JP");
+const loc  = n => n.toLocaleString("ja-JP",{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct  = n => (n*100).toLocaleString("ja-JP",{maximumFractionDigits:1}) + "%";
+const num  = el => { const v = parseFloat(el.value); return isNaN(v) ? NaN : v; };
+const roundDown3 = x => Math.floor(x/1000)*1000;
+
+/* Japanese income-tax quick table (速算表) */
+function incomeTax(x){
+  if(x<=0) return 0;
+  if(x<=1950000)  return x*0.05;
+  if(x<=3300000)  return x*0.10 - 97500;
+  if(x<=6950000)  return x*0.20 - 427500;
+  if(x<=9000000)  return x*0.23 - 636000;
+  if(x<=18000000) return x*0.33 - 1536000;
+  if(x<=40000000) return x*0.40 - 2796000;
+  return x*0.45 - 4796000;
+}
+/* employment-income deduction (給与所得控除) */
+function salaryDeduction(S){
+  if(S<=1625000) return 550000;
+  if(S<=1800000) return S*0.4 - 100000;
+  if(S<=3600000) return S*0.3 + 80000;
+  if(S<=6600000) return S*0.2 + 440000;
+  if(S<=8500000) return S*0.1 + 1100000;
+  return 1950000;
+}
+
+/* ---------- populate country select ---------- */
+const sel = $("country");
+COUNTRIES.forEach((c,i)=>{
+  const o=document.createElement("option");
+  o.value=i; o.textContent=c.name; sel.appendChild(o);
+});
+sel.value="0"; // カンボジア
+
+/* ---------- main compute ---------- */
+function compute(){
+  const c = COUNTRIES[+sel.value];
+  const isManual = (c.rate===null);
+  $("manualRateField").classList.toggle("hidden", !isManual);
+  const appliedRate = isManual ? (num($("manualRate"))/100) : c.rate;
+
+  // country info card
+  $("c_rate").textContent = isNaN(appliedRate) ? "—" : pct(appliedRate);
+  const tb=$("c_treaty");
+  tb.textContent = c.treaty;
+  tb.className = "badge " + (c.treaty==="有"?"yes":c.treaty==="無"?"no":"na");
+  $("c_note").textContent = c.note || "";
+
+  const deposit=num($("deposit")), rate=num($("rate")), years=num($("years")), fx=num($("fx"));
+  const side = isNaN(num($("side"))) ? 0 : num($("side"));
+  const salaryYN = document.querySelector('input[name="salaryYN"]:checked').value;
+
+  const coreOK = [deposit,rate,years,fx].every(v=>!isNaN(v)) && !isNaN(appliedRate);
+
+  if(!coreOK){
+    ["r_pretaxLocal","r_taxLocal","r_afterLocal","r_pretaxYen","r_taxYen","r_afterYen"]
+      .forEach(id=>$(id).textContent="—");
+    $("prompt").classList.remove("hidden");
+    $("verdict").classList.add("hidden");
+    $("stage2").classList.add("hidden");
+    $("stage3").classList.add("hidden");
+    return;
+  }
+  $("prompt").classList.add("hidden");
+
+  /* --- Stage 1 --- */
+  const pretaxLocal = deposit*(rate/100)*years;
+  const taxLocal    = pretaxLocal*appliedRate;
+  const afterLocal  = pretaxLocal-taxLocal;
+  const pretaxYen   = pretaxLocal*fx;
+  const taxYen      = taxLocal*fx;
+  const afterYen    = afterLocal*fx;
+
+  $("r_pretaxLocal").textContent = loc(pretaxLocal);
+  $("r_taxLocal").textContent    = loc(taxLocal);
+  $("r_afterLocal").textContent  = loc(afterLocal);
+  $("r_pretaxYen").textContent   = yen(pretaxYen);
+  $("r_taxYen").textContent      = yen(taxYen);
+  $("r_afterYen").textContent    = yen(afterYen);
+
+  /* --- verdict --- */
+  const noFile = (salaryYN==="はい") && ((side+pretaxYen)<=FILING_LINE);
+  const v=$("verdict"), stamp=$("stamp");
+  v.classList.remove("hidden","go","file");
+  if(noFile){
+    v.classList.add("go");
+    stamp.textContent="申告\n不要";
+    $("verdictTitle").textContent="所得税の確定申告は原則不要と考えられます";
+    $("verdictReason").textContent="給与2,000万円以下・利息と別収入の合計が20万円以下、の条件を満たしています（住民税は別途ご確認を）。";
+    $("stage2").classList.remove("hidden"); $("stage2").classList.add("fade");
+    $("stage3").classList.add("hidden");
+  }else{
+    v.classList.add("file");
+    stamp.textContent="要\n申告";
+    $("verdictTitle").textContent="確定申告が必要な可能性があります";
+    let reason;
+    if(salaryYN!=="はい") reason="給与収入が2,000万円を超えるため、金額にかかわらず申告が必要です。";
+    else reason="別収入と利息（円換算）の合計が20万円を超えるため、申告が必要です。";
+    $("verdictReason").textContent=reason;
+    $("stage2").classList.add("hidden");
+    $("stage3").classList.remove("hidden"); $("stage3").classList.add("fade");
+    computeStage3(pretaxYen, taxYen);
+  }
+}
+
+/* ---------- Stage 3 ---------- */
+function computeStage3(interestYen, localTaxYen){
+  $("s3_interest").textContent = yen(interestYen);
+  $("s3_localtax").textContent = yen(localTaxYen);
+
+  const salary = isNaN(num($("salary"))) ? 0 : num($("salary"));
+  const other  = isNaN(num($("other")))  ? 0 : num($("other"));
+  const mode   = document.querySelector('input[name="dedMode"]:checked').value;
+  $("manualDedField").classList.toggle("hidden", mode!=="manual");
+  const manualDed = isNaN(num($("manualDed"))) ? 0 : num($("manualDed"));
+
+  const kc  = salaryDeduction(salary);
+  const ky  = Math.max(0, salary-kc);
+  const ded = (mode==="auto") ? (salary*0.15 + 480000) : manualDed;
+
+  const tiA = Math.max(0, ky+other);
+  const tiB = Math.max(0, ky+other+interestYen);
+  const ktA = Math.max(0, roundDown3(tiA-ded));
+  const ktB = Math.max(0, roundDown3(tiB-ded));
+
+  const txA = incomeTax(ktA), txB = incomeTax(ktB);
+  const intTax   = Math.max(0, txB-txA);
+  const intFukko = Math.round(intTax*0.021);
+  const intJz    = Math.round(interestYen*0.10);
+  const jpBefore = intTax + intFukko + intJz;
+
+  const limIt  = (tiB===0) ? 0 : txB*interestYen/tiB;
+  const limAll = limIt*(1 + 0.021 + 0.30);      // 所得税限度額 ×1.321
+  const credit = Math.min(localTaxYen, limAll);
+  const carry  = Math.max(0, localTaxYen-limAll);
+
+  const s1=localTaxYen, s2=jpBefore, s4=Math.max(0, jpBefore-credit);
+  const s5=localTaxYen+s4, s6=interestYen-s5;
+  const erate = interestYen===0 ? 0 : s5/interestYen;
+
+  $("r_s1").textContent=yen(s1);
+  $("r_s2").textContent=yen(s2);
+  $("r_s3").textContent="−"+yen(credit);
+  $("r_s4").textContent=yen(s4);
+  $("r_s5").textContent=yen(s5);
+  $("r_s6").textContent=yen(s6);
+  $("r_erate").textContent=pct(erate);
+  $("r_carry").textContent=yen(carry);
+  $("carryNote").style.display = carry>0 ? "block" : "none";
+}
+
+/* ---------- wire up ---------- */
+document.querySelectorAll("input, select").forEach(el=>{
+  el.addEventListener("input", compute);
+  el.addEventListener("change", compute);
+});
+compute();
+</script>
+</body>
+</html>
