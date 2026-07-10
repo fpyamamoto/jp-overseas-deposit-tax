@@ -1,8 +1,33 @@
 <!DOCTYPE html>
+<!--
+  ============================================================================
+  海外預金 税務シミュレーター / Overseas Deposit Tax Simulator
+
+  Copyright (c) 2026 fpyamamoto. All Rights Reserved.
+  Source: https://github.com/fpyamamoto/jp-overseas-deposit-tax
+
+  This source code is published for portfolio and review purposes only.
+  It is NOT open source. You may read it. You may not copy, modify,
+  redistribute, host, or use it (in whole or in part, including the tax rate
+  data and calculation logic) for any purpose without prior written
+  permission from the copyright holder.
+
+  本ソースコードはポートフォリオおよび閲覧目的で公開しています。
+  オープンソースではありません。閲覧は自由ですが、著作権者の書面による
+  事前の許諾なく、全部または一部（税率データおよび計算ロジックを含む）を
+  複製・改変・再配布・ホスティング・利用することを禁じます。
+
+  DISCLAIMER: This tool provides estimates only. It is not tax advice.
+  免責：本ツールは概算であり、税務助言ではありません。
+  ============================================================================
+-->
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="fpyamamoto">
+<meta name="copyright" content="Copyright (c) 2026 fpyamamoto. All Rights Reserved.">
+<meta name="description" content="日本居住者向け・海外預金の税金と確定申告の要否を概算するWebアプリ / Tax simulator for Japanese residents with overseas deposits.">
 <title>海外預金 税務シミュレーター</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -459,6 +484,17 @@
   }
   .scope strong{color:var(--seal);}
 
+  /* ---------- copyright ---------- */
+  .copyright{
+    margin-top:14px;padding-top:12px;border-top:1px solid var(--line);
+    font-family:var(--mono);font-size:10.5px;color:var(--muted);
+    letter-spacing:.04em;display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  }
+  .cr-sep{color:var(--line-strong);}
+  @media print{
+    .copyright{font-size:7pt;margin-top:8px;padding-top:6px;}
+  }
+
   .hidden{display:none !important;}
   @media(prefers-reduced-motion:no-preference){
     .fade{animation:fade .35s ease both;}
@@ -860,6 +896,11 @@
       <li data-i18n-html="disc6">最終的な判断・申告手続きは、必ず税理士等の専門家にご相談ください。</li>
     </ul>
     <p class="credit" data-i18n="credit">税率データの出典・更新日は「税率データについて」をご覧ください（2026年7月時点）</p>
+    <p class="copyright">
+      <span data-i18n="copyright">© 2026 fpyamamoto. All Rights Reserved.</span>
+      <span class="cr-sep">·</span>
+      <span data-i18n="copyrightNote">無断複製・再配布を禁じます</span>
+    </p>
   </footer>
 
 </div>
@@ -1011,6 +1052,8 @@ const I18N = {
     disc5:"外貨のまま同一通貨で預け替える場合、元本部分に為替差益は生じないとされています（所得税法施行令167条の6第2項）。",
     disc6:"最終的な判断・申告手続きは、必ず税理士等の専門家にご相談ください。",
     credit:"税率データの出典・更新日は「税率データについて」をご覧ください（2026年7月時点）",
+    copyright:"© 2026 fpyamamoto. All Rights Reserved.",
+    copyrightNote:"無断複製・再配布を禁じます",
   },
   en: {
     docTitle:"Overseas Deposit Tax Simulator (Japan)",
@@ -1118,6 +1161,8 @@ const I18N = {
     disc5:"Moving a deposit between institutions in the same foreign currency is generally treated as producing no FX gain on the principal (Order for Enforcement of the Income Tax Act, Art. 167-6(2)).",
     disc6:"For any decision or filing, please consult a qualified tax professional.",
     credit:"See “About the tax rate data” for sources and the update date (as of July 2026).",
+    copyright:"© 2026 fpyamamoto. All Rights Reserved.",
+    copyrightNote:"Unauthorised copying or redistribution is prohibited.",
   }
 };
 
