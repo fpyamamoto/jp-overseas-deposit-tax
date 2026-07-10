@@ -1,0 +1,97 @@
+Copyright (c) 2026 fpyamamoto. All Rights Reserved.
+
+海外預金 税務シミュレーター / Overseas Deposit Tax Simulator
+https://github.com/fpyamamoto/jp-overseas-deposit-tax
+
+--------------------------------------------------------------------------
+ENGLISH
+--------------------------------------------------------------------------
+
+This software and its source code are made publicly viewable for portfolio,
+demonstration, and review purposes only.
+
+THIS IS NOT OPEN SOURCE SOFTWARE.
+
+You are permitted to:
+  - View and read the source code.
+  - Use the hosted application at its official URL for your own personal,
+    non-commercial reference.
+
+You are NOT permitted, without prior written permission from the copyright
+holder, to:
+  - Copy, reproduce, or transcribe the source code, in whole or in part.
+  - Modify, adapt, translate, or create derivative works.
+  - Redistribute, publish, sublicense, sell, or otherwise transfer it.
+  - Host, deploy, or operate this software, or any substantial portion of
+    it, on any server or service.
+  - Use the tax rate data, the country master data, or the calculation
+    logic in any other product, service, or publication.
+
+"Substantial portion" expressly includes the country tax rate table and the
+tax calculation logic, which represent the principal original contribution
+of this work.
+
+All rights not expressly granted above are reserved by the copyright holder.
+
+DISCLAIMER OF WARRANTY AND LIABILITY
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+This software produces ESTIMATES ONLY. It is not a formal tax calculation,
+not a tax document, and not tax, legal, or financial advice. The author is
+not a licensed tax accountant. Tax rates, tax treaties, and tax law change
+over time and vary by individual circumstance.
+
+IN NO EVENT SHALL THE AUTHOR OR COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM,
+DAMAGES, TAX LIABILITY, PENALTY, OR OTHER LOSS ARISING FROM, OUT OF, OR IN
+CONNECTION WITH THE SOFTWARE, ITS OUTPUT, OR ANY RELIANCE PLACED UPON IT.
+
+Always consult a qualified tax professional before acting on any figure
+produced by this software.
+
+--------------------------------------------------------------------------
+日本語
+--------------------------------------------------------------------------
+
+本ソフトウェアおよびそのソースコードは、ポートフォリオ、デモンストレーション
+および閲覧の目的に限り、公開されています。
+
+本ソフトウェアはオープンソースソフトウェアではありません。
+
+以下の行為は許諾されます。
+  - ソースコードの閲覧および読解。
+  - 公式URLで公開されているアプリケーションを、個人的かつ非商業的な参考の
+    ために利用すること。
+
+著作権者の書面による事前の許諾なく、以下の行為を行うことを禁じます。
+  - ソースコードの全部または一部の複製、転記。
+  - 改変、翻案、翻訳、二次的著作物の作成。
+  - 再配布、公衆送信、サブライセンス、販売その他の移転。
+  - 本ソフトウェアまたはその実質的部分を、サーバーまたはサービス上で
+    ホスティング、デプロイ、運用すること。
+  - 税率データ、国別マスタデータ、または計算ロジックを、他の製品、
+    サービス、出版物において利用すること。
+
+「実質的部分」には、本著作物の主要な創作的表現である、国別税率テーブル
+および税額計算ロジックが明示的に含まれます。
+
+上記において明示的に許諾されていない一切の権利は、著作権者が留保します。
+
+無保証および免責
+
+本ソフトウェアは「現状のまま」提供され、商品性、特定目的への適合性および
+権利非侵害についての保証を含め、明示または黙示を問わず、いかなる保証も
+行いません。
+
+本ソフトウェアが提供するのは概算のみです。正式な税務計算でも、税務書類でも
+なく、税務・法務・財務上の助言でもありません。作成者は税理士ではありません。
+税率、租税条約および税法は随時変動し、個々の事情により結論は異なります。
+
+本ソフトウェア、その出力、またはこれらへの依拠に起因または関連して生じた
+いかなる請求、損害、納税義務、加算税その他の損失についても、作成者および
+著作権者は一切の責任を負いません。
+
+本ソフトウェアが算出した数値に基づいて行動する前に、必ず税理士等の有資格の
+専門家にご相談ください。
