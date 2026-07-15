@@ -1009,7 +1009,7 @@ const I18N = {
     s2_li4:"<strong>住民税は別扱い</strong>です。所得税の20万円ルールは住民税には適用されません。所得税が不要でも住民税の申告が必要な場合があります。",
     s3_title:"日本の所得税・外国税額控除の概算",
     s3_sub:"利子は日本で総合課税（累進）になります。追加で数点を入力してください。",
-    s3_assume:"前提：社会保険料＝給与収入×15％・基礎控除48万円で所得控除を自動見積り／住民税は一律10％・復興特別所得税2.1％／条約の限度税率を超えて現地徴収された分は日本で控除できない場合があります。あくまで概算です。",
+    s3_assume:"前提：社会保険料＝給与収入×15％・基礎控除48万円で所得控除を自動見積り／住民税は一律10％・復興特別所得税2.1％／控除限度額の国外所得は所得総額の90％を上限（調整国外所得金額）／条約の限度税率を超えて現地徴収された分は日本で控除できない場合があります。あくまで概算です。",
     s3_inputs:"追加の入力項目",
     f_salary:"給与収入（額面・年間）", h_salary:"源泉徴収票の「支払金額」。",
     f_dedMode:"所得控除の見積り方法", ded_auto:"自動", ded_manual:"手入力",
@@ -1118,7 +1118,7 @@ const I18N = {
     s2_li4:"<strong>Resident tax is separate.</strong> The ¥200,000 rule applies to income tax only. A resident tax filing may still be required even when no income tax return is.",
     s3_title:"Japanese income tax and the foreign tax credit",
     s3_sub:"Interest is aggregated and taxed at progressive rates in Japan. A few more inputs are needed.",
-    s3_assume:"Assumptions: deductions estimated automatically as social insurance (15% of salary) plus the ¥480,000 basic deduction; resident tax at a flat 10%; special reconstruction income tax at 2.1%. Foreign tax withheld above a treaty cap may not be creditable in Japan. These are estimates only.",
+    s3_assume:"Assumptions: deductions estimated automatically as social insurance (15% of salary) plus the ¥480,000 basic deduction; resident tax at a flat 10%; special reconstruction income tax at 2.1%; foreign-source income in the credit limit is capped at 90% of total income (adjusted foreign source income). Foreign tax withheld above a treaty cap may not be creditable in Japan. These are estimates only.",
     s3_inputs:"Additional inputs",
     f_salary:"Employment income (gross, annual)", h_salary:"The gross amount on your withholding slip.",
     f_dedMode:"How to estimate deductions", ded_auto:"Automatic", ded_manual:"Manual",
@@ -1521,7 +1521,10 @@ function computeStage3(interestYen, localTaxYen, isCompound, years, fxIncomeYen)
   const intJz    = Math.round(interestYen*0.10);
   const jpBefore = intTax + intFukko + intJz;
 
-  const limIt  = (tiB===0) ? 0 : txB*interestYen/tiB;
+  /* 調整国外所得金額：国外所得は所得総額の90%が上限（所得税法施行令222②）。
+     給与が主収入なら通常この上限には当たらないが、法令に忠実に実装する。 */
+  const adjForeign = Math.min(interestYen, tiB*0.9);
+  const limIt  = (tiB===0) ? 0 : txB*adjForeign/tiB;
   const limAll = limIt*(1 + 0.021 + 0.30);      // 所得税限度額 ×1.321
   const credit = Math.min(localTaxYen, limAll);
   const carry  = Math.max(0, localTaxYen-limAll);
