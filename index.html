@@ -1,1257 +1,1643 @@
 <!DOCTYPE html>
 <!--
-  出国税チェッカー / Japan Exit Tax Checker
-  国外転出時課税制度（所得税法60条の2）の該当判定ツール
+  ============================================================================
+  海外預金 税務シミュレーター / Overseas Deposit Tax Simulator
 
   Copyright (c) 2026 fpyamamoto. All Rights Reserved.
-  無断複製・再配布を禁じます。
-  This source is published for viewing only. No license to use, copy,
-  modify, or redistribute is granted. See LICENSE for details.
+  Source: https://github.com/fpyamamoto/jp-overseas-deposit-tax
+
+  This source code is published for portfolio and review purposes only.
+  It is NOT open source. You may read it. You may not copy, modify,
+  redistribute, host, or use it (in whole or in part, including the tax rate
+  data and calculation logic) for any purpose without prior written
+  permission from the copyright holder.
+
+  本ソースコードはポートフォリオおよび閲覧目的で公開しています。
+  オープンソースではありません。閲覧は自由ですが、著作権者の書面による
+  事前の許諾なく、全部または一部（税率データおよび計算ロジックを含む）を
+  複製・改変・再配布・ホスティング・利用することを禁じます。
+
+  DISCLAIMER: This tool provides estimates only. It is not tax advice.
+  免責：本ツールは概算であり、税務助言ではありません。
+  ============================================================================
 -->
 <html lang="ja">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>出国税チェッカー | 国外転出時課税制度</title>
-<meta name="description" content="日本の居住者が海外へ移住する際の「国外転出時課税制度（出国税）」に該当するかを、出国予定日から逆算して確認できます。">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="fpyamamoto">
+<meta name="copyright" content="Copyright (c) 2026 fpyamamoto. All Rights Reserved.">
+<meta name="description" content="日本居住者向け・海外預金の税金と確定申告の要否を概算するWebアプリ / Tax simulator for Japanese residents with overseas deposits.">
+<title>海外預金 税務シミュレーター</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{
-  --paper:#F4F5F3; --card:#FCFCFB; --ink:#1A1C1B; --ink-2:#41453F;
-  --muted:#6E736C; --rule:#D6D9D4; --rule-2:#E8EAE6;
-  --signal:#C8102E;            /* 唯一の突出色：出国の瞬間 */
-  --mincho:"Hiragino Mincho ProN","Yu Mincho",YuMincho,"MS PMincho",serif;
-  --gothic:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,system-ui,sans-serif;
-  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Roboto Mono",monospace;
-  --sp:1.6rem;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html{font-size:16px;-webkit-text-size-adjust:100%}
-body{
-  background:var(--paper); color:var(--ink); font-family:var(--gothic);
-  line-height:1.85; font-size:.95rem; letter-spacing:.01em;
-  padding:var(--sp) 1rem 5rem;
-}
-.wrap{max-width:44rem;margin:0 auto}
-.nb{white-space:nowrap}
-.num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:0}
+  :root{
+    --paper:#F4F1E9;
+    --ink:#1A2740;
+    --card:#FFFFFF;
+    --indigo:#2C4A7C;
+    --seal:#AE3A2E;
+    --moss:#3B6B4C;
+    --brass:#96793C;
+    --muted:#6E6656;
+    --line:#E5DFD0;
+    --line-strong:#D4CBB4;
+    --mincho:'Shippori Mincho', serif;
+    --sans:'Hiragino Kaku Gothic ProN','Hiragino Sans','Yu Gothic',Meiryo,sans-serif;
+    --mono:'Roboto Mono', ui-monospace, 'SFMono-Regular', monospace;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:var(--sans);line-height:1.7;font-size:15px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1060px;margin:0 auto;padding:clamp(20px,4vw,52px) clamp(16px,4vw,32px) 80px;}
 
-/* ---- 見出し ---- */
-h1{font-family:var(--mincho);font-size:2rem;font-weight:600;line-height:1.4;letter-spacing:.04em}
-h2{font-family:var(--mincho);font-size:1.15rem;font-weight:600;letter-spacing:.05em;
-   margin:0 0 .9rem;padding-bottom:.4rem;border-bottom:1px solid var(--rule)}
-h3{font-family:var(--gothic);font-size:.92rem;font-weight:700;letter-spacing:.03em}
+  /* ---------- header ---------- */
+  header{margin-bottom:34px;}
+  .eyebrow{
+    font-family:var(--mono);font-size:12px;letter-spacing:.22em;
+    color:var(--brass);text-transform:uppercase;margin:0 0 14px;
+    display:flex;align-items:center;gap:12px;
+  }
+  .eyebrow::after{content:"";flex:1;height:1px;background:var(--line-strong);}
+  h1{
+    font-family:var(--mincho);font-weight:700;
+    font-size:clamp(28px,5vw,44px);line-height:1.24;margin:0 0 14px;
+    letter-spacing:.01em;text-wrap:balance;
+  }
+  .sp-break{display:none;}
+  .lede{max-width:60ch;color:var(--muted);margin:0 0 16px;font-size:15.5px;}
+  .assume{
+    display:flex;flex-wrap:wrap;gap:8px 10px;font-size:12.5px;
+    color:var(--muted);font-family:var(--mono);
+  }
+  .assume span{
+    border:1px solid var(--line-strong);padding:3px 10px;border-radius:2px;
+    background:rgba(255,255,255,.5);
+  }
 
-/* ---- ヘッダ：言語切替はgridで位置固定（flex-wrapを使わない） ---- */
-.masthead{display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:start;
-  border-bottom:2px solid var(--ink);padding-bottom:1rem;margin-bottom:1.1rem}
-.tagline{font-size:.82rem;color:var(--muted);margin-top:.35rem;line-height:1.7}
-.langsw{display:grid;grid-template-columns:auto auto;border:1px solid var(--rule);background:var(--card)}
-.langsw button{font-family:var(--mono);font-size:.72rem;padding:.3rem .6rem;min-height:2.4rem;
-  min-width:2.75rem;border:0;background:transparent;color:var(--muted);cursor:pointer;letter-spacing:.08em}
-.langsw button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
-.langsw button:focus-visible{outline:2px solid var(--signal);outline-offset:-2px}
+  /* ---------- section scaffold ---------- */
+  .step{margin-top:34px;}
+  .step-head{display:flex;align-items:baseline;gap:14px;margin-bottom:16px;}
+  .step-num{
+    font-family:var(--mono);font-size:13px;font-weight:500;color:#fff;
+    background:var(--indigo);width:30px;height:30px;border-radius:50%;
+    display:grid;place-items:center;flex:none;letter-spacing:0;
+    transform:translateY(2px);
+  }
+  .step-title{font-family:var(--mincho);font-weight:700;font-size:20px;margin:0;}
+  .step-sub{color:var(--muted);font-size:13px;margin:2px 0 0;}
 
-.notthis{border-left:3px solid var(--rule);padding:.5rem 0 .5rem .8rem;
-  font-size:.8rem;color:var(--muted);margin-bottom:1.8rem}
+  .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:22px;align-items:start;}
+  @media(max-width:760px){.grid{grid-template-columns:1fr;}}
 
-/* ---- ステップ ---- */
-.step{background:var(--card);border:1px solid var(--rule);padding:1.2rem 1.1rem;margin-bottom:.9rem}
-.step[hidden]{display:none}
-.stepno{font-family:var(--mono);font-size:.68rem;color:var(--muted);letter-spacing:.14em;
-  display:block;margin-bottom:.25rem}
-.q{font-size:.95rem;font-weight:600;margin-bottom:.15rem;line-height:1.7}
-.help{font-size:.78rem;color:var(--muted);line-height:1.75;margin-bottom:.7rem}
+  .card{
+    background:var(--card);border:1px solid var(--line);
+    border-radius:6px;padding:22px 22px 24px;
+  }
+  .card + .card{margin-top:0;}
+  .card-label{
+    font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--brass);margin:0 0 16px;
+    padding-bottom:9px;border-bottom:1px solid var(--line);
+  }
 
-.choices{display:grid;gap:.4rem;margin-top:.6rem}
-.choices.two{grid-template-columns:1fr 1fr}
-/* タップ領域は44px以上（WCAG 2.5.5）。主要ユーザーは40代以上を想定。 */
-.choices button{font-family:var(--gothic);font-size:.87rem;padding:.6rem .5rem;min-height:2.75rem;
-  border:1px solid var(--rule);background:var(--paper);color:var(--ink-2);cursor:pointer;
-  text-align:center;line-height:1.5}
-.choices button:hover{border-color:var(--ink);color:var(--ink)}
-.choices button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
-.choices button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+  /* ---------- fields ---------- */
+  .field{margin-bottom:16px;}
+  .field:last-child{margin-bottom:0;}
+  .field > label,.field .lab{
+    display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--ink);
+  }
+  .req{color:var(--seal);font-weight:700;margin-right:3px;}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.5;}
+  input[type=number],input[type=text],select{
+    width:100%;font-family:var(--sans);font-size:15px;color:var(--ink);
+    background:#FCFBF7;border:1px solid var(--line-strong);border-radius:4px;
+    padding:9px 11px;transition:border-color .15s,box-shadow .15s;
+  }
+  input[type=number]{font-family:var(--mono);text-align:right;}
+  input:focus,select:focus{
+    outline:none;border-color:var(--indigo);
+    box-shadow:0 0 0 3px rgba(44,74,124,.14);
+  }
+  .with-unit{position:relative;}
+  .with-unit .unit{
+    position:absolute;right:11px;top:50%;transform:translateY(-50%);
+    font-size:12px;color:var(--muted);pointer-events:none;font-family:var(--sans);
+  }
+  .with-unit input{padding-right:38px;}
 
-input[type=date],input[type=text]{font-family:var(--mono);font-variant-numeric:tabular-nums;
-  font-size:.95rem;padding:.5rem .6rem;min-height:2.75rem;border:1px solid var(--rule);
-  background:var(--paper);color:var(--ink);width:100%;max-width:15rem}
-input:focus-visible{outline:2px solid var(--signal);outline-offset:1px}
-.field{display:grid;gap:.3rem;margin-top:.5rem}
-.sidenote{font-size:.75rem;color:var(--muted);line-height:1.7}
+  /* segmented toggle */
+  .seg{display:flex;border:1px solid var(--line-strong);border-radius:4px;overflow:hidden;}
+  .seg input{position:absolute;opacity:0;width:0;height:0;}
+  .seg label{
+    flex:1;text-align:center;padding:8px 6px;font-size:14px;cursor:pointer;
+    background:#FCFBF7;color:var(--muted);transition:background .12s,color .12s;
+    user-select:none;
+  }
+  .seg label + label{border-left:1px solid var(--line-strong);}
+  .seg input:checked + label{background:var(--indigo);color:#fff;font-weight:600;}
+  .seg input:focus-visible + label{box-shadow:inset 0 0 0 2px rgba(44,74,124,.4);}
 
-/* ---- 折りたたみ：開く前に「誰が開くべきか」を常時表示 ---- */
-details{border-top:1px solid var(--rule-2);margin-top:.9rem;padding-top:.7rem}
-summary{cursor:pointer;font-size:.82rem;font-weight:600;color:var(--ink-2);list-style:none;
-  display:grid;grid-template-columns:1rem 1fr;gap:.4rem;align-items:start;
-  min-height:2.75rem;align-content:center}
-summary::-webkit-details-marker{display:none}
-summary::before{content:"＋";font-family:var(--mono);color:var(--muted);font-size:.8rem}
-details[open] summary::before{content:"−"}
-summary:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
-/* summaryは2列grid（＋記号 / 本文）。3つ目の要素は2行目の2列目に置く。
-   grid-column を指定しないと幅1remの1列目に落ち、1文字ずつ縦書きになる。 */
-.whofor{grid-column:2;font-size:.75rem;color:var(--muted);font-weight:400;margin-top:.1rem;line-height:1.7}
-.dbody{padding:.7rem 0 .2rem 1.4rem}
+  /* country info */
+  .cinfo{margin-top:14px;padding:13px 15px;background:#FBF9F2;border:1px solid var(--line);border-radius:4px;}
+  .cinfo-row{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:13px;}
+  .cinfo-row + .cinfo-row{margin-top:8px;}
+  .badge{
+    font-family:var(--mono);font-size:11px;padding:2px 9px;border-radius:999px;
+    border:1px solid currentColor;letter-spacing:.04em;
+  }
+  .badge.yes{color:var(--moss);}
+  .badge.no{color:var(--seal);}
+  .badge.na{color:var(--muted);}
+  .cnote{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.55;}
+  .rate-big{font-family:var(--mono);font-size:20px;font-weight:500;color:var(--indigo);}
 
-/* 任意の選択肢はチェックボックス。折りたたみで二重に関門を作らない。 */
-.check{display:grid;grid-template-columns:1.1rem 1fr;gap:.6rem;align-items:start;cursor:pointer;
-  margin-top:.9rem;padding-top:.85rem;border-top:1px solid var(--rule-2);min-height:2.75rem}
-.check[hidden]{display:none}
-.check input{appearance:none;-webkit-appearance:none;width:1.1rem;height:1.1rem;margin:.2rem 0 0;
-  border:1px solid var(--muted);background:var(--paper);cursor:pointer;display:grid;place-content:center}
-.check input:checked{background:var(--ink);border-color:var(--ink)}
-.check input:checked::after{content:"✓";color:var(--paper);font-family:var(--mono);font-size:.72rem;line-height:1}
-.check input:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
-.check:hover input{border-color:var(--ink)}
-.check strong{font-size:.87rem;font-weight:600;display:block;line-height:1.65}
-.check .sidenote{display:block;margin-top:.25rem}
+  /* ---------- ledger (results) ---------- */
+  .ledger{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 22px 20px;}
+  .ledger .card-label{border-bottom:none;margin-bottom:4px;padding-top:14px;}
+  .lrow{
+    display:flex;align-items:baseline;gap:10px;
+    padding:9px 0;border-bottom:1px dotted var(--line-strong);
+  }
+  .lrow:last-child{border-bottom:none;}
+  .lrow .k{font-size:13px;color:var(--muted);white-space:nowrap;}
+  .lrow .leader{flex:1;border-bottom:1px dotted #D9D0BA;transform:translateY(-3px);min-width:12px;}
+  .lrow .v{font-family:var(--mono);font-size:15px;text-align:right;white-space:nowrap;}
+  .lrow.em .k{color:var(--ink);font-weight:600;}
+  .lrow.em .v{font-size:17px;font-weight:500;}
+  .lrow.total{border-top:2px solid var(--ink);margin-top:4px;padding-top:12px;border-bottom:none;}
+  .lrow.total .k{font-weight:700;color:var(--ink);font-family:var(--mincho);}
+  .lrow.total .v{font-size:19px;font-weight:500;color:var(--seal);}
+  .lrow.credit .v{color:var(--moss);}
+  .lgroup-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);margin:16px 0 2px;}
 
-/* ---- 資産チェックリスト ---- */
-.assets{display:grid;gap:1rem;margin-top:.6rem}
-.acol h3{margin-bottom:.2rem;font-size:.8rem;letter-spacing:.06em}
-.colnote{font-size:.75rem;color:var(--muted);line-height:1.7;margin-bottom:.5rem}
-.acol.inc h3{color:var(--ink)}
-.acol.exc h3{color:var(--muted)}
-.alist{list-style:none;display:grid;gap:.15rem}
-.alist li{font-size:.83rem;padding-left:1.1rem;position:relative;line-height:1.7}
-.acol.inc .alist li::before{content:"✓";position:absolute;left:0;font-family:var(--mono);color:var(--ink)}
-.acol.exc .alist li{color:var(--muted)}
-.acol.exc .alist li::before{content:"—";position:absolute;left:0;font-family:var(--mono)}
-.anote{font-size:.72rem;color:var(--muted);display:block;line-height:1.6}
+  /* ---------- verdict ---------- */
+  .verdict{
+    margin-top:26px;border-radius:6px;padding:24px 26px;
+    display:flex;gap:20px;align-items:center;
+    border:1.5px solid;background:var(--card);
+  }
+  .verdict.go{border-color:var(--moss);}
+  .verdict.file{border-color:var(--seal);}
+  .stamp{
+    flex:none;width:92px;height:92px;border-radius:6px;display:grid;place-items:center;
+    font-family:var(--mincho);font-weight:700;text-align:center;line-height:1.15;
+    border:2.5px solid;font-size:22px;letter-spacing:.04em;position:relative;
+    transform:rotate(-3deg);
+  }
+  .verdict.go .stamp{color:var(--moss);border-color:var(--moss);background:rgba(59,107,76,.05);}
+  .verdict.file .stamp{color:var(--seal);border-color:var(--seal);background:rgba(174,58,46,.05);}
+  @media(max-width:520px){
+    .verdict{flex-direction:column;text-align:center;}.stamp{width:84px;height:84px;font-size:20px;}
+    h1{font-size:26px;line-height:1.3;}
+    .sp-break{display:inline;}
+  }
+  .verdict h3{margin:0 0 6px;font-family:var(--mincho);font-size:20px;}
+  .verdict.go h3{color:var(--moss);}
+  .verdict.file h3{color:var(--seal);}
+  .verdict p{margin:0;color:var(--muted);font-size:14px;}
 
-/* ---- 期間入力 ---- */
-.periods{display:grid;gap:.4rem;margin-top:.5rem}
-.prow{display:grid;grid-template-columns:1fr auto 1fr auto;gap:.4rem;align-items:center}
-.prow span{font-size:.8rem;color:var(--muted)}
-.prow input{max-width:none}
-.prow button{border:1px solid var(--rule);background:var(--paper);color:var(--muted);
-  cursor:pointer;font-family:var(--mono);font-size:.8rem;padding:.35rem .55rem;line-height:1;
-  min-height:2.75rem;min-width:2.75rem}
-.prow button:hover{border-color:var(--signal);color:var(--signal)}
-.addrow{border:1px dashed var(--rule);background:transparent;color:var(--ink-2);cursor:pointer;
-  font-family:var(--gothic);font-size:.8rem;padding:.45rem;width:100%;min-height:2.75rem}
-.addrow:hover{border-color:var(--ink)}
+  /* prompt when incomplete */
+  .prompt{
+    margin-top:26px;border:1px dashed var(--line-strong);border-radius:6px;
+    padding:20px;color:var(--muted);font-size:14px;background:rgba(255,255,255,.4);
+  }
 
-/* ---- 結果 ---- */
-.result{border:2px solid var(--ink);background:var(--card);padding:1.3rem 1.1rem;margin-top:1.6rem}
-.verdict{font-family:var(--mincho);font-size:1.5rem;font-weight:600;letter-spacing:.05em;line-height:1.4}
-.vsub{font-size:.83rem;color:var(--muted);margin-top:.3rem;line-height:1.8}
-.legalterm{font-family:var(--mono);font-size:.75rem;color:var(--muted);letter-spacing:.02em;
-  border-top:1px solid var(--rule-2);margin-top:.9rem;padding-top:.7rem;line-height:1.8}
-.distance{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.85rem;
-  color:var(--ink-2);margin-top:.5rem}
-.result.pending{border-width:1px;border-color:var(--rule)}
-.result.pending .verdict{font-size:1.15rem;color:var(--ink-2)}
-.needs{list-style:none;display:grid;gap:.35rem;margin-top:.9rem}
-.needs li{font-size:.84rem;color:var(--muted);padding-left:1.4rem;position:relative;line-height:1.7}
-.needs li::before{content:"□";position:absolute;left:0;font-family:var(--mono)}
-.needs li.next{color:var(--ink);font-weight:700}
-.needs li.next::before{content:"▶"}
-.nexttag{font-family:var(--mono);font-size:.65rem;border:1px solid var(--ink);padding:0 .25rem;
-  margin-left:.4rem;font-weight:400;letter-spacing:.04em;white-space:nowrap}
+  /* ---------- explanation (stage 2) ---------- */
+  .reveal{margin-top:26px;}
+  .explain h4{font-family:var(--mincho);font-size:16px;margin:0 0 12px;}
+  .clist{list-style:none;padding:0;margin:0;counter-reset:c;}
+  .clist li{
+    position:relative;padding:12px 0 12px 40px;border-bottom:1px solid var(--line);
+    font-size:14px;color:var(--ink);counter-increment:c;
+  }
+  .clist li:last-child{border-bottom:none;}
+  .clist li::before{
+    content:counter(c);position:absolute;left:0;top:12px;
+    font-family:var(--mono);font-size:12px;color:#fff;background:var(--brass);
+    width:24px;height:24px;border-radius:50%;display:grid;place-items:center;
+  }
+  .clist strong{color:var(--seal);}
 
-/* ---- 逆算タイムライン（signature） ---- */
-.tl{margin-top:1.3rem;border-top:1px solid var(--rule);padding-top:1rem}
-.tlhead{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;color:var(--muted);margin-bottom:.8rem}
-.tlist{list-style:none;position:relative;padding-left:1.1rem}
-.tlist::before{content:"";position:absolute;left:.24rem;top:.5rem;bottom:.5rem;width:1px;background:var(--rule)}
-.tli{display:grid;grid-template-columns:7.2rem 1fr;gap:.6rem;padding:.42rem 0;position:relative;
-  align-items:baseline}
-.tli::before{content:"";position:absolute;left:-1.1rem;top:.85rem;width:.52rem;height:.52rem;
-  border-radius:50%;background:var(--paper);border:1px solid var(--muted)}
-.tli.past::before{background:var(--rule);border-color:var(--rule)}
-.tli.crit::before{background:var(--signal);border-color:var(--signal);width:.62rem;height:.62rem;left:-1.15rem}
-.tli.today::before{background:var(--ink);border-color:var(--ink)}
-.tdate{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.8rem;color:var(--ink-2)}
-.tli.past .tdate,.tli.past .tlabel{color:var(--muted)}
-.tlabel{font-size:.83rem;line-height:1.65}
-.tli.crit .tlabel{font-weight:700;color:var(--signal)}
-.tli.crit .tdate{color:var(--signal);font-weight:700}
-.tli.today{border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);margin:.3rem 0}
-.tli.today .tlabel,.tli.today .tdate{font-weight:700}
-.tdelta{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.72rem;color:var(--muted);
-  display:block;margin-top:.05rem}
-.tli.crit .tdelta{color:var(--signal)}
-.approx{font-family:var(--mono);font-size:.65rem;color:var(--muted);border:1px solid var(--rule);
-  padding:0 .2rem;margin-left:.3rem;letter-spacing:.04em}
+  .erate{
+    margin-top:16px;padding:14px 18px;background:#FBF9F2;border:1px solid var(--line);
+    border-radius:4px;display:flex;justify-content:space-between;align-items:center;gap:12px;
+  }
+  .erate .lab2{font-size:13px;color:var(--muted);}
+  .erate .val2{font-family:var(--mono);font-size:24px;color:var(--seal);font-weight:500;}
 
-/* ---- 印刷専用の入力サマリー ---- */
-.printsum{display:none}
+  .callout{
+    margin-top:14px;font-size:12.5px;color:var(--indigo);background:rgba(44,74,124,.06);
+    border-left:3px solid var(--indigo);padding:11px 14px;border-radius:0 4px 4px 0;line-height:1.6;
+  }
 
-/* ---- 出典・免責 ---- */
-.sec{margin-top:2.2rem}
-.srclist{list-style:none;display:grid;gap:.3rem}
-.srclist li{font-size:.8rem;padding-left:1rem;position:relative;line-height:1.7}
-.srclist li::before{content:"▸";position:absolute;left:0;color:var(--muted);font-size:.7rem}
-a{color:var(--ink);text-decoration:underline;text-underline-offset:.18em;
-  text-decoration-color:var(--rule);text-decoration-thickness:1px}
-a:hover{text-decoration-color:var(--signal)}
-a:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
-.asof{font-family:var(--mono);font-size:.72rem;color:var(--muted);margin-top:.6rem;letter-spacing:.02em}
-.disc{font-size:.8rem;color:var(--ink-2);line-height:1.9}
-.disc strong{color:var(--ink)}
+  /* ---------- disclaimer ---------- */
+  .disclaimer{margin-top:44px;border-top:1px solid var(--line-strong);padding-top:22px;}
+  .disclaimer h5{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--seal);margin:0 0 12px;}
+  .disclaimer ul{margin:0;padding-left:1.1em;color:var(--muted);font-size:12.5px;line-height:1.85;}
+  footer .credit{margin-top:24px;font-family:var(--mono);font-size:11px;color:var(--brass);letter-spacing:.08em;}
 
-.tools{display:grid;grid-template-columns:auto auto auto;gap:.4rem;justify-content:start;margin-top:1.3rem}
-.tools button{font-family:var(--gothic);font-size:.78rem;padding:.42rem .8rem;min-height:2.75rem;
-  border:1px solid var(--rule);background:var(--card);color:var(--ink-2);cursor:pointer}
-.tools button:hover{border-color:var(--ink);color:var(--ink)}
-.tools button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+  /* ---------- actions ---------- */
+  .actions{
+    margin-top:36px;background:var(--card);border:1px solid var(--line);
+    border-radius:6px;padding:20px 22px;
+  }
+  .act-inner{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;}
+  .act-text h4{font-family:var(--mincho);font-size:16px;margin:0 0 3px;}
+  .act-text p{margin:0;font-size:12.5px;color:var(--muted);}
+  .act-btns{display:flex;gap:10px;flex-wrap:wrap;}
+  .btn{
+    font-family:var(--sans);font-size:13.5px;font-weight:600;cursor:pointer;
+    background:var(--indigo);color:#fff;border:1px solid var(--indigo);
+    padding:10px 16px;border-radius:4px;display:inline-flex;align-items:center;gap:7px;
+    transition:background .15s,color .15s,transform .06s;
+  }
+  .btn:hover{background:#22395F;}
+  .btn:active{transform:translateY(1px);}
+  .btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(44,74,124,.28);}
+  .btn.ghost{background:transparent;color:var(--indigo);}
+  .btn.ghost:hover{background:rgba(44,74,124,.07);}
+  .btn.done{background:var(--moss);border-color:var(--moss);color:#fff;}
+  .btn .ic{font-size:14px;line-height:1;}
+  .act-note{margin:14px 0 0;font-size:11.5px;color:var(--muted);line-height:1.6;
+    padding-top:12px;border-top:1px solid var(--line);}
+  @media(max-width:560px){
+    .act-inner{flex-direction:column;align-items:stretch;}
+    .act-btns{flex-direction:column;}
+    .btn{justify-content:center;}
+  }
 
-footer{border-top:1px solid var(--rule);margin-top:2.6rem;padding-top:1rem;
-  font-size:.72rem;color:var(--muted);line-height:1.8}
+  /* ---------- print ---------- */
+  .print-only{display:none;}
+  @media print{
+    @page{margin:14mm 12mm;}
+    body{background:#fff;font-size:10.5pt;line-height:1.5;}
+    .wrap{max-width:none;padding:0;}
+    .no-print{display:none !important;}
+    .print-only{display:block;}
 
-@media (max-width:520px){
-  :root{--sp:1rem}
-  h1{font-size:1.5rem}
-  .tli{grid-template-columns:6.2rem 1fr}
-  .prow{grid-template-columns:1fr auto;grid-auto-rows:auto}
-  .prow span:nth-of-type(1){display:none}
-  .tools{grid-template-columns:1fr}
-}
-@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+    .print-head{border-bottom:2px solid var(--ink);padding-bottom:8px;margin-bottom:14px;}
+    .ph-title{font-family:var(--mincho);font-size:16pt;font-weight:700;}
+    .ph-meta{display:flex;justify-content:space-between;font-size:8.5pt;color:#555;margin-top:5px;}
 
-/* ---- 印刷：色を保持 ---- */
-@media print{
-  :root{--paper:#fff;--card:#fff}
-  html,body{background:#fff}
-  body{padding:0;font-size:10pt}
-  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .langsw,.tools,.step:not(.printable),.addrow{display:none!important}
-  .result{border:2px solid #000;break-inside:avoid}
-  .printsum{display:block;margin-top:.9rem;border-top:1px solid var(--rule);padding-top:.7rem}
-  .printsum h3{font-size:8pt;letter-spacing:.08em;color:#555;margin-bottom:.35rem}
-  .printsum table{width:100%;border-collapse:collapse}
-  .printsum th{text-align:left;font-weight:400;color:#555;width:12em;padding:.12rem 0;
-    vertical-align:top;font-size:8.5pt;white-space:nowrap}
-  .printsum td{font-family:var(--mono);font-variant-numeric:tabular-nums;padding:.12rem 0;font-size:8.5pt}
-  .tl{break-inside:avoid}
-  .tli.crit .tlabel,.tli.crit .tdate,.tli.crit .tdelta{color:var(--signal)!important}
-  .tli.crit::before{background:var(--signal)!important;border-color:var(--signal)!important}
-  a{text-decoration:none}
-  a[href^="http"]::after{content:" (" attr(href) ")";font-size:7pt;color:#555;word-break:break-all}
-  footer{border-top:1px solid #000}
-}
+    header{margin-bottom:14px;}
+    h1{font-size:13pt;line-height:1.35;}
+    .sp-break{display:none;}
+    .lede,.eyebrow::after{display:none;}
+    .eyebrow{font-size:8pt;margin-bottom:6px;}
+    .assume span{font-size:8pt;padding:2px 7px;}
+
+    .step{margin-top:14px;page-break-inside:avoid;}
+    .step-head{margin-bottom:8px;}
+    .step-num{width:20px;height:20px;font-size:9pt;}
+    .step-title{font-size:12pt;}
+    .step-sub{font-size:8.5pt;}
+
+    .grid{grid-template-columns:1fr 1fr;gap:12px;}
+    .card,.ledger{border:1px solid #BBB;padding:12px;page-break-inside:avoid;}
+    .card-label{font-size:8pt;margin-bottom:8px;padding-bottom:5px;}
+    .field{margin-bottom:8px;}
+    .field > label,.field .lab{font-size:9pt;margin-bottom:2px;}
+    .hint{display:none;}
+    input,select{border:none;background:none;padding:2px 0;font-size:10pt;
+      text-align:left !important;color:#000;}
+    .with-unit .unit{position:static;transform:none;margin-left:4px;}
+    .seg{border:none;}
+    .seg label{display:none;}
+    .seg input:checked + label{display:inline;background:none;color:#000;
+      font-weight:600;padding:0;text-align:left;}
+
+    .lrow{padding:5px 0;}
+    .lrow .k,.lrow .v{font-size:9.5pt;}
+    .lrow.total .v{font-size:11pt;}
+    .lgroup-label{font-size:7.5pt;margin:8px 0 0;}
+
+    .verdict{margin-top:14px;padding:12px 14px;page-break-inside:avoid;border-width:1.5px;}
+    .stamp{width:60px;height:60px;font-size:13pt;border-width:2px;}
+    .verdict h3{font-size:11.5pt;}
+    .verdict p{font-size:9pt;}
+
+    .clist li{font-size:9pt;padding:6px 0 6px 30px;}
+    .clist li::before{width:18px;height:18px;font-size:8pt;top:7px;}
+    .callout,.erate{page-break-inside:avoid;}
+    .callout{font-size:8.5pt;padding:8px 10px;}
+    .erate .val2{font-size:15pt;}
+    .cinfo{padding:9px 11px;}
+    .cnote{font-size:8pt;}
+
+    .disclaimer{margin-top:16px;padding-top:10px;page-break-inside:avoid;}
+    .disclaimer h5{font-size:8pt;margin-bottom:6px;}
+    .disclaimer ul{font-size:8pt;line-height:1.6;}
+    footer .credit{font-size:7.5pt;margin-top:8px;}
+    a{text-decoration:none;color:#000;}
+  }
+
+  /* ---------- sources ---------- */
+  .csrc{margin:8px 0 0;font-size:11px;line-height:1.5;}
+  .csrc a{color:var(--indigo);text-decoration:none;border-bottom:1px solid rgba(44,74,124,.3);}
+  .csrc a:hover{border-bottom-color:var(--indigo);}
+  .csrc:empty{display:none;}
+
+  .sources{
+    margin-top:36px;background:var(--card);border:1px solid var(--line);
+    border-radius:6px;padding:22px;
+  }
+  .src-head{display:flex;justify-content:space-between;align-items:baseline;
+    gap:12px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--line);}
+  .src-head h4{font-family:var(--mincho);font-size:17px;margin:0;}
+  .src-updated{font-family:var(--mono);font-size:11.5px;color:var(--brass);}
+  .src-updated strong{color:var(--indigo);font-weight:500;}
+  .src-lede{font-size:13px;color:var(--muted);margin:14px 0 18px;line-height:1.75;}
+  .src-lede strong{color:var(--ink);font-weight:600;}
+
+  .src-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:660px){.src-grid{grid-template-columns:1fr;}}
+  .src-item{border-left:2px solid var(--line-strong);padding:2px 0 2px 13px;}
+  .src-tag{
+    display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+    color:var(--brass);text-transform:uppercase;margin-bottom:4px;
+  }
+  .src-item a{
+    display:block;font-size:13.5px;font-weight:600;color:var(--indigo);
+    text-decoration:none;line-height:1.45;
+  }
+  .src-item a:hover{text-decoration:underline;}
+  .src-item p{margin:4px 0 0;font-size:11.5px;color:var(--muted);line-height:1.55;}
+
+  .src-warn{
+    margin-top:20px;padding:16px 18px;background:#FBF9F2;
+    border:1px solid var(--line-strong);border-radius:4px;
+  }
+  .src-warn > strong{display:block;font-size:13px;color:var(--seal);margin-bottom:8px;}
+  .src-warn ol{margin:0;padding-left:1.3em;}
+  .src-warn li{font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:7px;}
+  .src-warn li:last-child{margin-bottom:0;}
+  .src-warn strong{color:var(--ink);font-weight:600;}
+
+  @media print{
+    .sources{border:1px solid #BBB;padding:12px;margin-top:14px;page-break-inside:avoid;}
+    .src-head h4{font-size:11pt;}
+    .src-updated{font-size:8pt;}
+    .src-lede{font-size:8.5pt;margin:8px 0 10px;}
+    .src-grid{gap:8px;}
+    .src-item a{font-size:9pt;color:#000;}
+    .src-item p{font-size:7.5pt;}
+    .src-tag{font-size:7pt;}
+    .src-warn{padding:9px 11px;margin-top:12px;}
+    .src-warn > strong{font-size:9pt;}
+    .src-warn li{font-size:8pt;line-height:1.5;}
+  }
+
+  /* ---------- yearly breakdown ---------- */
+  .yearly{
+    margin-top:16px;background:var(--card);border:1px solid var(--line);
+    border-radius:6px;padding:8px 18px 16px;
+  }
+  .yearly .card-label{border-bottom:1px solid var(--line);padding-top:12px;margin-bottom:10px;}
+  .ytab{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11.5px;}
+  .ytab th{
+    text-align:right;font-weight:500;color:var(--brass);font-size:10px;
+    letter-spacing:.06em;padding:5px 4px;border-bottom:1px solid var(--line-strong);
+    text-transform:uppercase;
+  }
+  .ytab th:first-child,.ytab td:first-child{text-align:left;}
+  .ytab td{text-align:right;padding:6px 4px;border-bottom:1px dotted var(--line);color:var(--ink);}
+  .ytab tbody tr:last-child td{border-bottom:none;font-weight:500;}
+  .ytab tbody tr:last-child{background:rgba(44,74,124,.04);}
+  .ytab td.tax{color:var(--seal);}
+  .ynote{margin:10px 0 0;font-size:11px;color:var(--muted);line-height:1.55;}
+  @media(max-width:560px){
+    .ytab{font-size:10.5px;}
+    .ytab th,.ytab td{padding:5px 2px;}
+  }
+  @media print{
+    .yearly{border:1px solid #BBB;padding:10px;page-break-inside:avoid;margin-top:10px;}
+    .ytab{font-size:8pt;}
+    .ytab th{font-size:7pt;}
+    .ynote{font-size:7.5pt;}
+  }
+
+  /* ---------- optional FX gain ---------- */
+  .fxopt{
+    margin:16px 0;padding:14px 16px;background:#FBF9F2;
+    border:1px dashed var(--line-strong);border-radius:5px;
+  }
+  .fxopt-toggle{display:flex;align-items:flex-start;gap:10px;cursor:pointer;user-select:none;}
+  .fxopt-toggle input{position:absolute;opacity:0;width:0;height:0;}
+  .fxopt-box{
+    flex:none;width:17px;height:17px;border:1.5px solid var(--line-strong);
+    border-radius:3px;background:#fff;margin-top:2px;position:relative;transition:.15s;
+  }
+  .fxopt-toggle input:checked + .fxopt-box{background:var(--indigo);border-color:var(--indigo);}
+  .fxopt-toggle input:checked + .fxopt-box::after{
+    content:"";position:absolute;left:5px;top:1px;width:4px;height:9px;
+    border:solid #fff;border-width:0 2px 2px 0;transform:rotate(43deg);
+  }
+  .fxopt-toggle input:focus-visible + .fxopt-box{box-shadow:0 0 0 3px rgba(44,74,124,.22);}
+  .fxopt-txt strong{display:block;font-size:13px;font-weight:600;color:var(--ink);}
+  .fxopt-txt em{display:block;font-style:normal;font-size:11.5px;color:var(--muted);margin-top:1px;}
+  .fxopt-body{margin-top:14px;padding-top:14px;border-top:1px solid var(--line-strong);}
+
+  .fxres{
+    margin-top:16px;background:var(--card);border:1px solid var(--line);
+    border-radius:6px;padding:8px 22px 18px;
+  }
+  .fxres .card-label{border-bottom:1px solid var(--line);padding-top:12px;margin-bottom:6px;}
+  .fxres .lrow.em .v.gain{color:var(--moss);}
+  .fxres .lrow.em .v.loss{color:var(--seal);}
+  .fxnote{margin:12px 0 0;font-size:11.5px;color:var(--muted);line-height:1.6;
+    padding-top:10px;border-top:1px dotted var(--line-strong);}
+  .fxnote strong{color:var(--seal);font-weight:600;}
+  #fxRoleNote{color:var(--indigo);}
+
+  @media print{
+    .fxopt{display:none;}
+    .fxres{border:1px solid #BBB;padding:10px;page-break-inside:avoid;margin-top:10px;}
+    .fxnote{font-size:7.5pt;}
+  }
+
+  /* ---------- language switcher ---------- */
+  .topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;}
+  .topbar .eyebrow{flex:1;margin-bottom:0;}
+  .langsw{display:flex;flex:none;border:1px solid var(--line-strong);border-radius:4px;overflow:hidden;}
+  .lang-btn{
+    font-family:var(--mono);font-size:11px;letter-spacing:.06em;cursor:pointer;
+    background:#FCFBF7;color:var(--muted);border:none;padding:6px 11px;transition:.14s;
+  }
+  .lang-btn + .lang-btn{border-left:1px solid var(--line-strong);}
+  .lang-btn:hover{color:var(--indigo);}
+  .lang-btn[aria-pressed="true"]{background:var(--indigo);color:#fff;}
+  .lang-btn:focus-visible{outline:none;box-shadow:inset 0 0 0 2px rgba(44,74,124,.45);}
+  @media(max-width:520px){.topbar{margin-bottom:6px;} .lang-btn{padding:5px 9px;}}
+
+  /* scope notice shown in EN */
+  .scope{
+    margin:14px 0 0;padding:11px 14px;border-left:3px solid var(--seal);
+    background:rgba(174,58,46,.05);border-radius:0 4px 4px 0;
+    font-size:12.5px;color:var(--ink);line-height:1.6;
+  }
+  .scope strong{color:var(--seal);}
+
+  /* ---------- copyright ---------- */
+  .copyright{
+    margin-top:14px;padding-top:12px;border-top:1px solid var(--line);
+    font-family:var(--mono);font-size:10.5px;color:var(--muted);
+    letter-spacing:.04em;display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  }
+  .cr-sep{color:var(--line-strong);}
+  @media print{
+    .copyright{font-size:7pt;margin-top:8px;padding-top:6px;}
+  }
+
+  .hidden{display:none !important;}
+  @media(prefers-reduced-motion:no-preference){
+    .fade{animation:fade .35s ease both;}
+    @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  }
+  a{color:var(--indigo);}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-<header class="masthead">
-  <div>
-    <h1 id="t-title"></h1>
-    <p class="tagline" id="t-tagline"></p>
+  <!-- print-only sheet header -->
+  <div class="print-only print-head">
+    <div class="ph-title" data-i18n="ph_title">海外預金 税務シミュレーション 概算結果</div>
+    <div class="ph-meta">
+      <span><span data-i18n="ph_date">作成日：</span><span id="p_date"></span></span>
+      <span data-i18n="ph_note">本書は概算であり、税務書類ではありません</span>
+    </div>
   </div>
-  <div class="langsw" role="group" aria-label="Language">
-    <button type="button" data-lang="ja">JA</button>
-    <button type="button" data-lang="en">EN</button>
-  </div>
-</header>
 
-<p class="notthis" id="t-notthis"></p>
+  <header>
+    <div class="topbar no-print">
+      <p class="eyebrow" data-i18n="eyebrow">海外預金 税務シミュレーター</p>
+      <div class="langsw" role="group" aria-label="Language">
+        <button type="button" class="lang-btn" data-lang="ja">日本語</button>
+        <button type="button" class="lang-btn" data-lang="en">EN</button>
+      </div>
+    </div>
+    <h1 data-i18n-html="h1">海外預金の税金と<br class="sp-break">確定申告の要否を概算</h1>
+    <p class="lede" data-i18n="lede">日本在住で海外に外貨預金を持つ方向けに、利息・現地の源泉税・日本での確定申告の要否をその場で試算します。国を選ぶと源泉税率が自動で入ります。</p>
+    <div class="assume">
+      <span data-i18n="chip1">単利・複利に対応</span><span data-i18n="chip2">為替差益は任意</span><span data-i18n="chip3">概算・専門家相談前提</span>
+    </div>
+    <p class="scope hidden" id="scopeNote"></p>
+  </header>
 
-<main id="steps"></main>
+  <!-- ============ STAGE 1 ============ -->
+  <section class="step">
+    <div class="step-head">
+      <div class="step-num">1</div>
+      <div>
+        <h2 class="step-title" data-i18n="s1_title">利息の概算と申告要否の判定</h2>
+        <p class="step-sub" data-i18n="s1_sub">預金の情報を入力すると、利息・源泉税・判定が自動で更新されます。</p>
+      </div>
+    </div>
 
-<section class="result" id="result" aria-live="polite"></section>
+    <div class="grid">
+      <!-- inputs -->
+      <div class="card">
+        <p class="card-label" data-i18n="inputs">入力項目</p>
 
-<div class="tools">
-  <button type="button" id="btn-print"></button>
-  <button type="button" id="btn-share"></button>
-  <button type="button" id="btn-reset"></button>
-</div>
-<p class="sidenote" id="t-sharenote" style="margin-top:.6rem"></p>
+        <div class="field">
+          <label for="country"><span class="req">＊</span><span data-i18n="f_country">預入国（預金を保有している国・地域）</span></label>
+          <select id="country"></select>
+        </div>
 
-<section class="sec"><h2 id="t-src-h"></h2>
-  <ul class="srclist" id="src-primary"></ul>
-  <p class="asof" id="t-asof"></p>
-  <h3 style="margin-top:1.2rem" id="t-ref-h"></h3>
-  <ul class="srclist" id="src-ref" style="margin-top:.4rem"></ul>
-</section>
+        <div class="field hidden" id="manualRateField">
+          <label for="manualRate" data-i18n="f_manualRate">源泉税率（手入力）</label>
+          <div class="with-unit">
+            <input type="number" id="manualRate" value="10" step="0.1" min="0" max="100">
+            <span class="unit">％</span>
+          </div>
+          <p class="hint" data-i18n="h_manualRate">リストにない国の非居住者向け源泉税率を入力してください。</p>
+        </div>
 
-<section class="sec"><h2 id="t-disc-h"></h2>
-  <p class="disc" id="t-disc"></p>
-</section>
+        <div class="field">
+          <label for="deposit"><span class="req">＊</span><span data-i18n="f_deposit">預金額（現地通貨）</span></label>
+          <input type="number" id="deposit" value="10000" min="0" step="100">
+        </div>
 
-<footer><p id="t-copy"></p></footer>
+        <div class="field">
+          <label for="rate"><span class="req">＊</span><span data-i18n="f_rate">年利</span></label>
+          <div class="with-unit">
+            <input type="number" id="rate" value="5" min="0" step="0.01">
+            <span class="unit">％</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="years"><span class="req">＊</span><span data-i18n="f_years">預入期間</span></label>
+          <div class="with-unit">
+            <input type="number" id="years" value="1" min="0" step="1">
+            <span class="unit">年</span>
+          </div>
+          <p class="hint" data-i18n="h_years">日本人に多いのは3年・5年定期です。1年未満は 0.5 のように入力できます。</p>
+        </div>
+
+        <div class="field">
+          <span class="lab"><span class="req">＊</span><span data-i18n="f_payMode">利息の受取方法</span></span>
+          <div class="seg">
+            <input type="radio" name="payMode" id="paySimple" value="simple" checked>
+            <label for="paySimple" data-i18n="pay_simple">満期一括</label>
+            <input type="radio" name="payMode" id="payCompound" value="compound">
+            <label for="payCompound" data-i18n="pay_compound">毎年受取・複利</label>
+          </div>
+          <p class="hint" id="payHint">満期時に利息をまとめて受け取る（単利）。利息は満期の年に一括して課税されます。</p>
+        </div>
+
+        <div class="field">
+          <label for="fx"><span class="req">＊</span><span data-i18n="f_fx">想定為替レート（現地通貨1単位＝◯円）</span></label>
+          <div class="with-unit">
+            <input type="number" id="fx" value="150" min="0" step="0.0001">
+            <span class="unit">円</span>
+          </div>
+          <p class="hint"><span data-i18n="h_fx">例：1米ドル＝150円なら 150、1タイバーツ＝4.3円なら 4.3。</span><span id="fxRoleNote"></span></p>
+        </div>
+
+        <!-- optional: FX gain on conversion back to JPY -->
+        <div class="fxopt">
+          <label class="fxopt-toggle" for="fxEnable">
+            <input type="checkbox" id="fxEnable">
+            <span class="fxopt-box" aria-hidden="true"></span>
+            <span class="fxopt-txt">
+              <strong data-i18n="fx_toggle">円に戻したときの損益も見る</strong>
+              <em data-i18n="fx_toggle_sub">任意。円転しない場合は不要です。</em>
+            </span>
+          </label>
+
+          <div class="fxopt-body hidden" id="fxBody">
+            <div class="field" style="margin-bottom:12px;">
+              <label for="fxOut" data-i18n="f_fxOut">円転時の為替レート（現地通貨1単位＝◯円）</label>
+              <div class="with-unit">
+                <input type="number" id="fxOut" value="150" min="0" step="0.0001">
+                <span class="unit">円</span>
+              </div>
+              <p class="hint" data-i18n="h_fxOut">円に戻すとき（満期・解約時）の想定レート。上の「想定為替レート」を預入時のレートとして計算します。</p>
+            </div>
+
+            <div class="field" style="margin-bottom:0;">
+              <span class="lab" data-i18n="f_convMode">円に戻す範囲</span>
+              <div class="seg">
+                <input type="radio" name="convMode" id="convAll" value="all" checked>
+                <label for="convAll" data-i18n="conv_all">元本＋利息</label>
+                <input type="radio" name="convMode" id="convInterest" value="interest">
+                <label for="convInterest" data-i18n="conv_interest">利息のみ</label>
+              </div>
+              <p class="hint" data-i18n="h_convMode">元本を外貨のまま保有し続ける場合、その元本部分に為替差益は生じません。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="lab"><span class="req">＊</span><span data-i18n="f_salaryYN">会社員として給与収入は2,000万円以下ですか？</span></span>
+          <div class="seg">
+            <input type="radio" name="salaryYN" id="salYes" value="はい" checked>
+            <label for="salYes" data-i18n="yes">はい</label>
+            <input type="radio" name="salaryYN" id="salNo" value="いいえ">
+            <label for="salNo" data-i18n="no">いいえ</label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="side"><span class="req">＊</span><span data-i18n="f_side">副業などの別収入（年間の所得金額）</span></label>
+          <div class="with-unit">
+            <input type="number" id="side" value="0" min="0" step="10000">
+            <span class="unit">円</span>
+          </div>
+          <p class="hint" data-i18n="h_side">収入から必要経費を引いた所得。なければ 0 のまま。利息と合算して20万円ラインを判定します。</p>
+        </div>
+      </div>
+
+      <!-- results -->
+      <div>
+        <div class="ledger">
+          <p class="card-label"><span id="ledgerLabel">利息と源泉税</span></p>
+          <div class="lrow"><span class="k" id="k_pretaxLocal">税引前利息（現地通貨）</span><span class="leader"></span><span class="v" id="r_pretaxLocal">—</span></div>
+          <div class="lrow"><span class="k" data-i18n="l_taxLocal">現地の源泉税（現地通貨）</span><span class="leader"></span><span class="v" id="r_taxLocal">—</span></div>
+          <div class="lrow"><span class="k" data-i18n="l_afterLocal">税引後 受取利息（現地通貨）</span><span class="leader"></span><span class="v" id="r_afterLocal">—</span></div>
+          <div class="lrow hidden" id="row_finalBal"><span class="k" data-i18n="l_finalBal">満期時の元利合計（現地通貨）</span><span class="leader"></span><span class="v" id="r_finalBal">—</span></div>
+          <p class="lgroup-label" data-i18n="l_yen">円換算</p>
+          <div class="lrow em"><span class="k" id="k_pretaxYen">税引前利息</span><span class="leader"></span><span class="v" id="r_pretaxYen">—</span></div>
+          <div class="lrow"><span class="k" data-i18n="l_taxYen">現地の源泉税</span><span class="leader"></span><span class="v" id="r_taxYen">—</span></div>
+          <div class="lrow em"><span class="k" data-i18n="l_afterYen">税引後 手取り</span><span class="leader"></span><span class="v" id="r_afterYen">—</span></div>
+        </div>
+
+        <div class="fxres hidden" id="fxres">
+          <p class="card-label" data-i18n="fx_title">円転による為替損益（雑所得）</p>
+          <div class="lrow"><span class="k" data-i18n="fx_amt">円転する外貨額（現地通貨）</span><span class="leader"></span><span class="v" id="r_convAmt">—</span></div>
+          <div class="lrow"><span class="k" id="k_fxDiff" data-i18n="fx_diff">為替レートの差（円）</span><span class="leader"></span><span class="v" id="r_fxDiff">—</span></div>
+          <div class="lrow em"><span class="k" id="k_fxGain">為替差益</span><span class="leader"></span><span class="v" id="r_fxGain">—</span></div>
+          <p class="fxnote" id="fxNote"></p>
+        </div>
+
+        <div class="yearly hidden" id="yearly">
+          <p class="card-label" data-i18n="y_title">年ごとの内訳（複利）</p>
+          <table class="ytab">
+            <thead>
+              <tr><th data-i18n="y_year">年</th><th data-i18n="y_open">年初残高</th><th data-i18n="y_int">利息</th><th data-i18n="y_wht">源泉税</th><th data-i18n="y_close">年末残高</th></tr>
+            </thead>
+            <tbody id="ytabBody"></tbody>
+          </table>
+          <p class="ynote" data-i18n-html="y_note">毎年利息を受け取り、税引後の額を元本に再投資した場合の推移です。金額は現地通貨。<br>「*」は1年未満の端数期間を示します。</p>
+        </div>
+
+        <div class="cinfo" id="cinfo">
+          <div class="cinfo-row">
+            <span class="k" style="color:var(--muted);font-size:13px;" data-i18n="c_rateLabel">適用される源泉税率</span>
+            <span class="rate-big" id="c_rate">—</span>
+          </div>
+          <div class="cinfo-row">
+            <span class="k" style="color:var(--muted);font-size:13px;" data-i18n="c_treatyLabel">日本との租税条約</span>
+            <span class="badge na" id="c_treaty">—</span>
+          </div>
+          <p class="cnote" id="c_note"></p>
+          <p class="csrc no-print" id="c_src"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- verdict / prompt -->
+    <div class="prompt hidden" id="prompt" data-i18n="prompt">＊印の必須項目をすべて入力すると、判定が表示されます。</div>
+    <div class="verdict hidden" id="verdict">
+      <div class="stamp" id="stamp"></div>
+      <div>
+        <h3 id="verdictTitle"></h3>
+        <p id="verdictReason"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 2 (申告不要) ============ -->
+  <section class="step reveal hidden" id="stage2">
+    <div class="step-head">
+      <div class="step-num" style="background:var(--moss)">2</div>
+      <div>
+        <h2 class="step-title" data-i18n="s2_title">申告不要と判定された方へ</h2>
+        <p class="step-sub" data-i18n="s2_sub">どんなときに税金・申告が発生するかを確認しておきましょう。</p>
+      </div>
+    </div>
+    <div class="card explain">
+      <h4 data-i18n="s2_h">次のいずれかに当てはまると「申告が必要」に変わります</h4>
+      <ul class="clist">
+        <li data-i18n-html="s2_li1">利息（円換算）と副業などの<strong>別収入の合計が年間20万円を超えた</strong>とき。期間を延ばす・預金額を増やす・金利や為替が上振れすると、20万円ラインを超えます。</li>
+        <li data-i18n-html="s2_li2">別収入（副業・不動産・他の投資益など）がある場合は<strong>利息と合算して判定</strong>します。利息単独で20万円以下でも、合算で超えることがあります。</li>
+        <li data-i18n-html="s2_li3"><strong>給与収入が2,000万円を超える</strong>とき。金額にかかわらず確定申告が必要です。</li>
+        <li data-i18n-html="s2_li4"><strong>住民税は別扱い</strong>です。所得税の20万円ルールは住民税には適用されません。所得税が不要でも住民税の申告が必要な場合があります。</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 3 (要申告) ============ -->
+  <section class="step reveal hidden" id="stage3">
+    <div class="step-head">
+      <div class="step-num" style="background:var(--seal)">3</div>
+      <div>
+        <h2 class="step-title" data-i18n="s3_title">日本の所得税・外国税額控除の概算</h2>
+        <p class="step-sub" data-i18n="s3_sub">利子は日本で総合課税（累進）になります。追加で数点を入力してください。</p>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:0;margin-bottom:18px;" data-i18n-html="s3_assume">前提：社会保険料＝給与収入×15％・基礎控除48万円で所得控除を自動見積り／住民税は一律10％・復興特別所得税2.1％／条約の限度税率を超えて現地徴収された分は日本で控除できない場合があります。あくまで概算です。</div>
+
+    <div class="grid">
+      <div class="card">
+        <p class="card-label" data-i18n="s3_inputs">追加の入力項目</p>
+
+        <div class="field">
+          <label for="salary"><span class="req">＊</span><span data-i18n="f_salary">給与収入（額面・年間）</span></label>
+          <div class="with-unit">
+            <input type="number" id="salary" value="6000000" min="0" step="100000">
+            <span class="unit">円</span>
+          </div>
+          <p class="hint" data-i18n="h_salary">源泉徴収票の「支払金額」。</p>
+        </div>
+
+        <div class="field">
+          <span class="lab"><span class="req">＊</span><span data-i18n="f_dedMode">所得控除の見積り方法</span></span>
+          <div class="seg">
+            <input type="radio" name="dedMode" id="dedAuto" value="auto" checked>
+            <label for="dedAuto" data-i18n="ded_auto">自動</label>
+            <input type="radio" name="dedMode" id="dedManual" value="manual">
+            <label for="dedManual" data-i18n="ded_manual">手入力</label>
+          </div>
+          <p class="hint" data-i18n="h_dedMode">ライトに使う方は「自動」でOK。</p>
+        </div>
+
+        <div class="field hidden" id="manualDedField">
+          <label for="manualDed" data-i18n="f_manualDed">所得控除の合計（手入力）</label>
+          <div class="with-unit">
+            <input type="number" id="manualDed" value="0" min="0" step="10000">
+            <span class="unit">円</span>
+          </div>
+          <p class="hint" data-i18n="h_manualDed">源泉徴収票の各種控除の合計など。</p>
+        </div>
+
+        <div class="field">
+          <label for="other"><span class="req">＊</span><span data-i18n="f_other">その他の所得（副業・不動産等の所得金額）</span></label>
+          <div class="with-unit">
+            <input type="number" id="other" value="0" min="0" step="10000">
+            <span class="unit">円</span>
+          </div>
+          <p class="hint" data-i18n="h_other">なければ 0 のまま。</p>
+        </div>
+
+        <div class="field" style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line);">
+          <span class="lab" style="color:var(--muted);" data-i18n="s3_from1">第1段階の計算結果</span>
+          <div class="cinfo" style="margin-top:6px;">
+            <div class="cinfo-row"><span style="font-size:13px;color:var(--muted);" data-i18n="s3_interestLabel">利子所得（円換算）</span><span class="v" style="font-family:var(--mono)" id="s3_interest">—</span></div>
+            <div class="cinfo-row"><span style="font-size:13px;color:var(--muted);" data-i18n="s3_localtaxLabel">現地の源泉税（円換算）</span><span class="v" style="font-family:var(--mono)" id="s3_localtax">—</span></div>
+            <div class="cinfo-row hidden" id="s3_fxRow"><span style="font-size:13px;color:var(--muted);" data-i18n="s3_fxLabel">為替差益（雑所得）</span><span class="v" style="font-family:var(--mono)" id="s3_fxGain">—</span></div>
+            <p class="cnote" id="s3_basisNote"></p>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="ledger">
+          <p class="card-label" data-i18n="s3_ledger">この預金にかかる税と手取り</p>
+          <div class="lrow"><span class="k" data-i18n="s3_r1">① 現地の源泉税（支払済）</span><span class="leader"></span><span class="v" id="r_s1">—</span></div>
+          <div class="lrow"><span class="k" data-i18n="s3_r2">② 日本の利子課税（控除前）</span><span class="leader"></span><span class="v" id="r_s2">—</span></div>
+          <div class="lrow credit"><span class="k" data-i18n="s3_r3">③ 外国税額控除（相殺）</span><span class="leader"></span><span class="v" id="r_s3">—</span></div>
+          <div class="lrow"><span class="k" data-i18n="s3_r4">④ 日本での実質追加負担</span><span class="leader"></span><span class="v" id="r_s4">—</span></div>
+          <div class="lrow total"><span class="k" data-i18n="s3_r5">⑤ この預金の税 合計</span><span class="leader"></span><span class="v" id="r_s5">—</span></div>
+          <div class="lrow em" style="margin-top:6px;"><span class="k" data-i18n="s3_r6">⑥ 税引後の最終手取り</span><span class="leader"></span><span class="v" id="r_s6" style="color:var(--moss)">—</span></div>
+        </div>
+
+        <div class="erate">
+          <span class="lab2" data-i18n="s3_erate">利子に対する実効税率</span>
+          <span class="val2" id="r_erate">—</span>
+        </div>
+
+        <div class="callout" id="carryNote" data-i18n-html="carryNote">今年の控除枠で引ききれなかった現地源泉税（繰越額 <span id="r_carry" style="font-family:var(--mono)">—</span>）は、翌年以降の確定申告で最長3年間、日本の税額からマイナスできる可能性があります（毎年の申告が必要）。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DISCLAIMER ============ -->
+  <!-- ============ DATA SOURCES ============ -->
+  <section class="sources" id="sources">
+    <div class="src-head">
+      <h4 data-i18n="src_title">税率データについて</h4>
+      <span class="src-updated"><span data-i18n="src_updated">最終更新：</span><strong data-i18n="src_date">2026年7月</strong></span>
+    </div>
+
+    <p class="src-lede" data-i18n-html="src_lede">本アプリの源泉税率は、日本と各国の租税条約における<strong>利子の限度税率</strong>（条約がある国）、
+      または<strong>現地国内法の非居住者源泉税率</strong>（条約がない国）に基づいています。
+      日本は77本・81か国地域と租税条約を締結しており、条約がある場合は原則として条約の限度税率が国内法に優先します。</p>
+
+    <div class="src-grid">
+      <div class="src-item">
+        <span class="src-tag" data-i18n="src_t1">条約の有無</span>
+        <a href="https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html" target="_blank" rel="noopener noreferrer"><span data-i18n="src_l1">財務省「我が国の租税条約等の一覧」</span></a>
+        <p data-i18n="src_d1">日本が締結する租税条約の相手国・発効状況の一次情報。</p>
+      </div>
+      <div class="src-item">
+        <span class="src-tag" data-i18n="src_t2">条約の仕組み</span>
+        <a href="https://www.mof.go.jp/tax_policy/summary/international/tax_convention/index.htm" target="_blank" rel="noopener noreferrer"><span data-i18n="src_l2">財務省「租税条約に関する資料」</span></a>
+        <p data-i18n="src_d2">OECDモデル租税条約と、源泉地国課税の範囲についての解説。</p>
+      </div>
+      <div class="src-item">
+        <span class="src-tag" data-i18n="src_t3">外国税額控除</span>
+        <a href="https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1240.htm" target="_blank" rel="noopener noreferrer"><span data-i18n="src_l3">国税庁 No.1240「居住者に係る外国税額控除」</span></a>
+        <p data-i18n="src_d3">控除限度額の計算式と、3年間の繰越控除の根拠。</p>
+      </div>
+      <div class="src-item">
+        <span class="src-tag" data-i18n="src_t4">各国税制</span>
+        <a href="https://www.jetro.go.jp/world/" target="_blank" rel="noopener noreferrer"><span data-i18n="src_l4">ジェトロ「国・地域別に見る」</span></a>
+        <p data-i18n="src_d4">各国の税制・源泉徴収税率の実務情報。</p>
+      </div>
+    </div>
+
+    <div class="src-warn">
+      <strong data-i18n="src_warnTitle">税率の扱いについて、3つの注意点があります。</strong>
+      <ol>
+        <li data-i18n-html="src_w1"><strong>収録している税率は代表値です。</strong>利子の限度税率は、預金の種類・支払先の性質・条約の適用条件によって同じ国でも異なる場合があります（例：タイは条約上10〜25%、フィリピンは一部15%）。備考欄に記載のある国は特にご注意ください。</li>
+        <li data-i18n-html="src_w2"><strong>条約の限度税率を超えて源泉徴収された分は、日本で控除できない場合があります。</strong>国税庁は、条約の規定により相手国が課すことができる額を超える部分は外国税額控除の対象外としています。超過分は原則として現地で還付請求すべきものです。</li>
+        <li data-i18n-html="src_w3"><strong>条約は署名・発効により変動します。</strong>本アプリの税率は上記の更新時点のものです。実際の申告にあたっては、必ず最新の一次情報と専門家の確認をお願いします。</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ ACTIONS ============ -->
+  <section class="actions no-print" id="actions">
+    <div class="act-inner">
+      <div class="act-text">
+        <h4 data-i18n="act_title">結果を保存・共有する</h4>
+        <p data-i18n="act_sub">税理士への相談や、あとで見返すためにお使いください。</p>
+      </div>
+      <div class="act-btns">
+        <button type="button" class="btn" id="btnPrint">
+          <span class="ic">🖨</span> <span data-i18n="act_print">印刷 / PDFで保存</span>
+        </button>
+        <button type="button" class="btn ghost" id="btnShare">
+          <span class="ic">🔗</span> <span id="shareLabel">この条件のURLをコピー</span>
+        </button>
+      </div>
+    </div>
+    <p class="act-note" data-i18n="act_note">「印刷 / PDFで保存」では、印刷画面の送信先で「PDFに保存」を選ぶとPDFになります。URLには入力した条件のみが含まれ、サーバーには何も送信されません。</p>
+  </section>
+
+  <footer class="disclaimer">
+    <h5 data-i18n="disc_title">免責事項</h5>
+    <ul>
+      <li data-i18n-html="disc1">本ツールは概算シミュレーションであり、正式な税務計算・税務書類ではありません。</li>
+      <li data-i18n-html="disc2">作成者は税理士ではなく、税務・法務上の助言を行うものではありません。</li>
+      <li data-i18n-html="disc3">各国の源泉税率・租税条約は国により異なり、随時変動します。税率は代表値で、預金の種類・条約の適用条件・現地の還付手続等により実際の税額は変わります。</li>
+      <li data-i18n-html="disc4">為替差益は「円に戻したときの損益も見る」を有効にした場合のみ、雑所得として概算に含めます。実際の計算では預入時・払出時の正確なレート（原則TTM等）と取得原価の記録が必要です。為替差損は雑所得内でのみ通算でき、給与所得等とは損益通算できません。</li>
+      <li data-i18n-html="disc5">外貨のまま同一通貨で預け替える場合、元本部分に為替差益は生じないとされています（所得税法施行令167条の6第2項）。</li>
+      <li data-i18n-html="disc6">最終的な判断・申告手続きは、必ず税理士等の専門家にご相談ください。</li>
+    </ul>
+    <p class="credit" data-i18n="credit">税率データの出典・更新日は「税率データについて」をご覧ください（2026年7月時点）</p>
+    <p class="copyright">
+      <span data-i18n="copyright">© 2026 fpyamamoto. All Rights Reserved.</span>
+      <span class="cr-sep">·</span>
+      <span data-i18n="copyrightNote">無断複製・再配布を禁じます</span>
+    </p>
+  </footer>
+
 </div>
 
 <script>
-'use strict';
-/* ============================================================
-   RULES — 制度データ。ロジックから分離。改正時はここだけ差し替える。
-   ============================================================ */
-const RULES = {
-  meta:{ lawAsOf:'2026-07-01', faqRevision:'2023-06', reviewedOn:'2026-07-16',
-         enforcedFrom:{y:2015,m:7,d:1} },
-  threshold:{ amount:100000000, comparison:'gte' },
-  residency:{
-    lookbackYears:10, requiredYears:5, comparison:'gt',
-    // 数え方は所基通2-4の3（非永住者判定）に倣う。60の2 専用の通達は公表されていないため類推。
-    counting:{ circular:'2-4-3', startsDayAfterEntry:true, daysPerMonth:30, monthsPerYear:12,
-               windowCircular:'2-4-2', byAnalogy:true },
-    nearLineDays:30,   // この範囲では判定はするが、警告を出す
-  },
-  valuation:{
-    withTaxAgent:   { offsetMonths:0 },
-    withoutTaxAgent:{ offsetMonths:-3, dayRule:'responseDay', onMissingDay:'undecidable' }
-  },
-  assets:{
-    included:[{key:'listedStock'},{key:'unlistedStock'},{key:'fund'},{key:'bond'},
-              {key:'nisa',note:'nisaNote'},{key:'tokumeiKumiai'},{key:'marginTrading'},
-              {key:'whenIssued'},{key:'derivative'}],
-    excludedCommon:[{key:'crypto',note:'cryptoNote'},{key:'cash'},{key:'realEstate'},{key:'niniKumiai'}],
-    excludedOptional:[{key:'unvestedRS'},{key:'qualifiedSO'}]
-  },
-  timeline:{ transfer:[
-    {id:'valuationDate',   offset:{months:-3}, dayRule:'responseDay', precision:'exact', showIf:'noAgent'},
-    {id:'taxAgentDeadline',offset:{},          precision:'exact', severity:'critical'},
-    {id:'filingNoAgent',   offset:{},          precision:'exact', showIf:'noAgent'},
-    {id:'filingWithAgent', rule:'mar15OfNextYear', precision:'exact', showIf:'agent'},
-    {id:'collateral',      rule:'mar15OfNextYear', precision:'exact', showIf:'deferral'},
-    {id:'continuationNotice',rule:'mar15OfNextYear',recurring:true,precision:'exact',showIf:'deferral'},
-    {id:'extensionNotice', offset:{years:5},   precision:'approx', showIf:'deferral'},
-    {id:'revocationLimit', offset:{years:5},   precision:'approx'},
-    {id:'deferralDue',     offset:{years:5,months:4},  precision:'approx', showIf:'deferral'},
-    {id:'deferralDueExt',  offset:{years:10,months:4}, precision:'approx', showIf:'deferral'}
-  ]},
-  taxRate:{ total:0.15315 },
-  statute:{ defaultYears:7, withAgentYears:5 },
-  sources:{
-    primary:[
-      {key:'ntaPortal', url:'https://www.nta.go.jp/taxes/shiraberu/shinkoku/kokugai/01.htm'},
-      {key:'ntaOutline',url:'https://www.nta.go.jp/taxes/shiraberu/shinkoku/kokugai/pdf/03.pdf'},
-      {key:'ntaFaq',    url:'https://www.nta.go.jp/taxes/shiraberu/shinkoku/kokugai/pdf/02.pdf'},
-      {key:'ntaAnswer', url:'https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1478.htm'},
-      {key:'ntaForms',  url:'https://www.nta.go.jp/taxes/shiraberu/shinkoku/kokugai/yoshiki/index.htm'}
-    ],
-    reference:[
-      {key:'egov', url:'https://laws.e-gov.go.jp/law/340AC0000000033'},
-      {key:'zeirishi', url:'https://www.nta.go.jp/taxes/zeirishi/search/search.htm'}
-    ]
-  }
-};
+"use strict";
 
-/* ============================================================
-   I18N — 表示テキストは全部ここ。ja/en はキー数が必ず一致する。
-   ============================================================ */
+/* ---------- country tax master ---------- */
+const COUNTRIES = [
+  {name:"インド", nameEn:"India", noteEn:"", rate:0.10, treaty:"有", note:"", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"インドネシア", nameEn:"Indonesia", noteEn:"", rate:0.10, treaty:"有", note:"", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"英国", nameEn:"United Kingdom", noteEn:"Interest is generally exempt under the treaty.", rate:0.00, treaty:"有", note:"条約上、利子は原則免税。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"オーストラリア", nameEn:"Australia", noteEn:"", rate:0.10, treaty:"有", note:"", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"カザフスタン", nameEn:"Kazakhstan", noteEn:"", rate:0.10, treaty:"有", note:"", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"カナダ", nameEn:"Canada", noteEn:"", rate:0.10, treaty:"有", note:"", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"韓国", nameEn:"South Korea", noteEn:"", rate:0.10, treaty:"有", note:"", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"カンボジア", nameEn:"Cambodia", noteEn:"No tax treaty with Japan; domestic-law rate for non-residents.", rate:0.14, treaty:"無", note:"日本と租税条約なし・現地国内法の非居住者源泉税率。", src:"https://www.jetro.go.jp/world/"},
+  {name:"シンガポール", nameEn:"Singapore", noteEn:"", rate:0.10, treaty:"有", note:"", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"ジョージア", nameEn:"Georgia", noteEn:"No tax treaty with Japan. Domestic-law rate on interest is 5%.", rate:0.05, treaty:"無", note:"日本と租税条約なし。非居住者への利子は国内法で5%。口座開設が比較的容易。", src:"https://www.jetro.go.jp/world/"},
+  {name:"タイ", nameEn:"Thailand", noteEn:"Treaty rate ranges 10–25% depending on deposit type. Verify before relying on this.", rate:0.10, treaty:"有", note:"条約上10〜25%。預金の種類で異なり要確認（高めに出る場合あり）。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"台湾", nameEn:"Taiwan", noteEn:"Based on the Japan–Taiwan private tax arrangement.", rate:0.10, treaty:"有", note:"日台民間租税取決めに基づく。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"中国", nameEn:"China", noteEn:"OECD-standard treaty cap.", rate:0.10, treaty:"有", note:"OECD標準の限度税率。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"ドイツ", nameEn:"Germany", noteEn:"Interest is generally exempt under the treaty.", rate:0.00, treaty:"有", note:"条約上、利子は原則免税。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"トルコ", nameEn:"Türkiye", noteEn:"Treaty rate ranges 10–15% depending on deposit type.", rate:0.10, treaty:"有", note:"条約上10〜15%。預金の種類で異なり要確認。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"バングラデシュ", nameEn:"Bangladesh", noteEn:"Treaty cap 10%; 15% without a local Taxpayer Identification Number (TIN).", rate:0.10, treaty:"有", note:"条約上10%。ただし現地の納税者識別番号(TIN)がない場合15%。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"フィリピン", nameEn:"Philippines", noteEn:"15% in some cases.", rate:0.10, treaty:"有", note:"一部15%。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"ブラジル", nameEn:"Brazil", noteEn:"Treaty cap 12.5%. A tax-sparing credit (20% on interest) may apply — consult a professional.", rate:0.125, treaty:"有", note:"条約上12.5%。日伯条約に「みなし外国税額控除」(利子20%)の特例あり・要専門家確認。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"フランス", nameEn:"France", noteEn:"Some interest is exempt.", rate:0.10, treaty:"有", note:"一部免税あり。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"ブルネイ", nameEn:"Brunei", noteEn:"", rate:0.10, treaty:"有", note:"", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"米国", nameEn:"United States", noteEn:"Interest is generally exempt under the treaty (10% in some cases).", rate:0.00, treaty:"有", note:"条約上、利子は原則免税（例外10%）。米国は預金利子の非居住者免税もあり。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"ベトナム", nameEn:"Vietnam", noteEn:"", rate:0.10, treaty:"有", note:"", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"香港", nameEn:"Hong Kong", noteEn:"", rate:0.10, treaty:"有", note:"", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"マレーシア", nameEn:"Malaysia", noteEn:"", rate:0.10, treaty:"有", note:"", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"南アフリカ", nameEn:"South Africa", noteEn:"", rate:0.10, treaty:"有", note:"", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"メキシコ", nameEn:"Mexico", noteEn:"Treaty provides 10% and 15% categories.", rate:0.10, treaty:"有", note:"条約上10%と15%の区分あり。ペソ建てで人気。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"モンゴル", nameEn:"Mongolia", noteEn:"No tax treaty with Japan. Domestic-law rate on interest is a high 20%; part may be uncreditable.", rate:0.20, treaty:"無", note:"日本と租税条約なし。非居住者への利子は国内法で20%と高率。控除しきれない場合あり。", src:"https://www.jetro.go.jp/world/"},
+  {name:"その他（手入力）", nameEn:"Other (manual entry)", noteEn:"Not in the list. Enter the withholding tax rate manually.", rate:null, treaty:"—", note:"リストにない国。源泉税率を手入力してください。", src:""},
+];
+const FILING_LINE = 200000;
+
+/* ---------- i18n ----------
+   Only the interface is translated. The tax engine itself implements
+   JAPANESE tax law and applies to Japanese residents only — the English
+   UI exists to make that scope legible, not to generalise it.        */
 const I18N = {
-ja:{
- title:'出国税チェッカー',
- tagline:'日本の居住者が海外へ移住するとき、売っていない株式等の含み益に所得税がかかることがあります。出国予定日から逆算して確認します。',
- notthis:'これは航空券に上乗せされる1,000円の税（国際観光旅客税）の話ではありません。有価証券等の含み益に対する所得税の話です。',
- langJa:'JA', langEn:'EN',
-
- s1no:'STEP 1', s1q:'いま、生活の本拠は日本にありますか。',
- s1help:'仕事・住まい・家族の中心が日本にあるかどうかで考えてください。長期の海外赴任中で日本に戻る予定がない場合は「いいえ」です。',
- s1yes:'はい、日本が中心', s1nono:'いいえ、すでに海外が中心',
-
- s2no:'STEP 2', s2q:'海外へ移り住む予定はありますか。',
- s2help:'1年以上、日本に住まいも生活の拠点も持たなくなる予定を指します。旅行や短期出張は含みません。',
- s2yes:'ある', s2nono:'ない',
- s2date:'出国の予定日',
- s2dhelp:'この1つの日付から、すべての期限を逆算します。日にちが未定なら、いまの見込みで構いません。',
-
- s3no:'STEP 3', s3q:'出国予定日より前の10年間、ずっと日本に住んでいましたか。',
- s3help:'途中で数年だけ海外にいた、という場合は「海外にいた時期がある」を選ぶと、期間を入力できます。',
- s3yes:'ずっと日本', s3nono:'海外にいた時期がある',
- s3plabel:'日本に住んでいた期間',
- s3from:'から', s3to:'まで', s3add:'＋ 期間を追加', s3del:'削除',
- s3defSum:'過去に国外転出時課税で納税猶予を受けたことがある方へ',
- s3defWho:'海外にいた期間でも、日本にいた期間として数える場合があります。初めて出国する方は開く必要はありません。',
- s3defNote:'過去に国外転出時課税制度の納税猶予の特例を受けていた期間は、日本に住所も居所も無かった期間であっても、この10年5年超の判定では国内在住期間に含めます。上の期間入力に、その期間も足してください。',
- s3visaSum:'日本国籍ではない方へ',
- s3visaWho:'在留資格によっては、日本にいた期間が数えられません。日本国籍の方は開く必要はありません。',
- s3visaNote:'次の在留資格で在留していた期間は、この10年5年超の判定では日本にいた期間に数えません（外交・教授・芸術・経営／管理・法律／会計業務・医療・研究・教育・企業内転勤・短期滞在・留学など）。上の期間入力から、その期間を外してください。また、2015年6月30日までに永住者・永住者の配偶者等・定住者などで在留していた期間も数えません。',
-
- s4no:'STEP 4', s4q:'出国より前に、日本での税の手続を代わりにしてくれる人を税務署に届け出る予定はありますか。',
- s4help:'この届出をするかどうかで、株式等をいつの値段で評価するかが変わります。多くの方は「知らなかった」です。届け出れば、評価は出国日の値段になり、申告は翌年3月15日まで待てます。届け出なければ、評価は出国予定日のちょうど3か月前の値段になり、申告は出国の日までです。',
- s4yes:'届け出る予定', s4nono:'予定はない／知らなかった',
- s4defQ:'納税を先延ばしにする制度（納税猶予）も使う予定がある',
- s4defNote:'いま払うお金がない場合の選択肢です。使うには、担保を出すことと、申告書にその旨を書くことが必要です。チェックすると、猶予に関わる期限もタイムラインに出ます。',
-
- s5no:'STEP 5', s5q:'基準日の時点で、次のものの時価を合計するといくらになりますか。',
- s5basisAt:'あなたの基準日：出国日の値段で評価します。',
- s5basis3m:'あなたの基準日：{date}（出国予定日のちょうど3か月前）の値段で評価します。',
- s5inc:'合計に入れるもの',
- s5incNote:'基準日の時価を入れます。買ったときの値段ではありません。',
- s5exc:'合計に入れないもの',
- s5excNote:'いくら持っていても、1億円の判定には関係しません。',
- s5amount:'時価の合計（円）',
- s5where:'証券会社の口座画面にある「評価額合計」がいちばん近い数字です。複数の口座があれば、すべて合計してください。株式や投資信託は、含み損が出ていてもマイナスにはせず、その日の値段のまま合計に入れます。未決済の信用取引・発行日取引・デリバティブだけは例外で、値段ではなく「決済したとみなした場合の利益または損失の額」を入れるため、損失ならマイナスになります。',
- s5fxSum:'外貨建ての資産をお持ちの方へ',
- s5fxWho:'円に直す方法の説明です。円建てだけの方は開く必要はありません。',
- s5fxNote:'基準日のTTM（対顧客直物電信売相場と買相場の仲値）で円に直します。TTBでもTTSでもありません（所得税基本通達60の2-8）。レートは取引のある金融機関が公表しているものを使ってください。このツールはレートを自動では取りません。取ってしまうと、正しそうに見える間違った数字になるからです。合計が1億円から大きく離れているなら、おおまかな換算で足ります。1億円の前後1割に入るなら、正確なTTMで計算してください。',
- s5rsSum:'勤務先から株式やストックオプションを受け取っている方へ',
- s5rsWho:'合計に入れなくてよいものがあります。自社株を持っていない方は開く必要はありません。',
- s5rsNote:'次の2つは合計に入れません。①譲渡制限がまだ解除されていない特定譲渡制限付株式（権利が確定していないRSU）②税制適格ストックオプションの権利を表す有価証券。ただし法令では、どちらも「国内源泉所得を生ずべきもの」に限る、とされています。その所得の源泉が日本かどうかで扱いが分かれるため、海外の親会社から受け取っている場合など、源泉がはっきりしないときは、ここだけは税理士にご確認ください。すでに権利が確定して自由に売れる状態の株式は、ふつうに合計へ入れてください。',
-
- a_listedStock:'上場株式', a_unlistedStock:'非上場株式（自社株・同族会社の株式など）',
- a_fund:'投資信託', a_bond:'公社債（国債・社債・割引債など）',
- a_nisa:'NISA口座内の資産', a_nisaNote:'売っても税金がかからない口座ですが、合計には入れます',
- a_tokumeiKumiai:'匿名組合契約の出資持分',
- a_marginTrading:'未決済の信用取引', a_whenIssued:'未決済の発行日取引',
- a_derivative:'未決済のデリバティブ取引（先物・オプション・FXなど）',
- a_crypto:'暗号資産', a_cryptoNote:'2026年の分離課税化のあとも対象外のままです',
- a_cash:'現金・預金', a_realEstate:'不動産',
- a_niniKumiai:'任意組合契約の出資持分', a_niniNote:'匿名組合とは扱いが逆です',
- a_unvestedRS:'権利が確定していない譲渡制限付株式（RSU）',
- a_qualifiedSO:'税制適格ストックオプション',
- a_overseasNote:'海外の証券口座で持っているものも合計に入れます。',
-
- v_subject:'対象になります',
- v_notSubject:'対象になりません',
- v_undecidable:'このツールでは判定できません',
- v_incomplete:'まだ判定できません',
- incompleteCount:'あと{n}項目に答えると判定できます',
- needNext:'次はここ',
- need_isResident:'STEP 1：いま、生活の本拠が日本にあるか',
- need_willDepart:'STEP 2：海外へ移り住む予定と、その出国予定日',
- need_alwaysInJapan:'STEP 3：出国前の10年間、ずっと日本にいたか',
- need_periods:'STEP 3：日本に住んでいた期間（開始日と終了日）',
- need_hasTaxAgent:'STEP 4：日本での税の手続を代わりにする人を届け出るか',
- need_totalValue:'STEP 5：対象資産の時価合計',
-
- r_notResident:'いまの生活の本拠が日本にない方は、この制度の対象者（居住者）ではありません。',
- r_noDeparturePlan:'日本に住み続ける限り、この制度は関係ありません。海外へ移り住む予定ができたら、また確認してください。',
- r_departureDateRequired:'出国の予定日を入れてください。この日付がないと、どの日の値段で評価するかが決まりません。',
- r_beforeEnforcement:'この制度は2015年7月1日以後の出国から適用されます。',
- r_residencyNotMet:'出国予定日より前の10年で、日本にいた期間が5年を超えていません。金額がいくらであっても対象外です。',
- r_thresholdNotMet:'基準日の合計が1億円に届きません。',
- r_notEntered:'合計金額を入れてください。',
- r_noResponseDay:'出国予定日が{dep}のため、そのちょうど3か月前にあたる日が暦の上に存在しません（{ym}にその日はありません）。この場合にどの日を使うかは、国税庁の公表資料に書かれていません。日付を1日ずらすか、納税管理人を届け出れば、この問題は起きません（届け出た場合の基準日は出国日そのものになります）。',
- res_span:'国内在住期間：{span}',
- res_over:'5年の線を {diff} 超えています',
- res_under:'5年の線まで あと {diff}',
- res_exact:'ちょうど5年です。要件は「5年を超えて」なので、1日でも足りなければ対象外です',
- res_near:'5年の線から30日以内です。この範囲では、住所や居所の認定、日付の記憶しだいで結論が変わります。税理士にご確認ください。',
- res_basis:'数え方は所得税基本通達2-4の3に倣っています。これは非永住者判定（所得税法2条1項4号）の通達で、文言がほぼ同じであるため類推しました。国外転出時課税に専用の通達は公表されていません。年数・月数・日数をそれぞれ合計し、日数は30日をもって1月、月数は12月をもって1年とします。期間は入国の日の翌日から出国の日までです。',
- ymd_y:'{n}年', ymd_m:'{n}か月', ymd_d:'{n}日',
- ymd_y1:'{n}年', ymd_m1:'{n}か月', ymd_d1:'{n}日',
- r_invalidPeriod:'期間の日付が正しくありません。',
- r_reversedPeriod:'期間の開始日が終了日より後になっています。',
-
- v_subjectSub:'出国の時に、持っている有価証券等をその値段で売ったものとみなして、含み益に所得税と復興特別所得税がかかります。実際に売る必要はありません。住民税はかかりません。',
- v_notSubjectSub:'いまの内容では、この制度による課税は生じません。ただし状況が変われば結論も変わります。',
- v_undecidableSub:'下の理由をお読みください。専門家に相談する価値のある状態です。',
-
- termHead:'法令上の呼称',
- term_subject:'この制度の正式な名称は「国外転出時課税制度」、根拠は所得税法第60条の2です。あなたが該当したのは、①国外転出の時に対象資産の価額の合計額が1億円以上であること、②国外転出の日前10年以内において国内在住期間が5年を超えていること、の2つの要件です。',
- distanceOver:'1億円を {n} 円 超えています',
- distanceUnder:'1億円まで あと {n} 円 足りません',
- nearThreshold:'1億円の前後1割に入っています。この範囲では、基準日の株価しだいで結論が変わります。基準日の実際の終値で計算し直してください。',
-
- tlHead:'出国予定日 {date} からの逆算',
- tl_valuationDate:'この日の値段で評価される（出国予定日のちょうど3か月前）',
- tl_taxAgentDeadline:'納税管理人の届出はこの日まで。過ぎると納税猶予が使えず、出国までに全額を納めることになります。価額が下がったときの減額も、外国税額控除も、猶予を条件とするので一緒に消えます',
- tl_filingNoAgent:'準確定申告と納税はこの日まで（出国の時まで）',
- tl_filingWithAgent:'確定申告と納税の期限',
- tl_collateral:'担保の提供もこの日まで',
- tl_continuationNotice:'継続適用届出書をこの日までに提出（猶予が終わるまで続きます）',
- tl_extensionNotice:'猶予を5年延ばすなら、この日までに期限延長届出書',
- tl_revocationLimit:'この日までに帰国して持ち続けていれば、課税を取り消せる（帰国から4か月以内に更正の請求）。これだけは納税管理人の届出がなくても使えます',
- tl_deferralDue:'猶予した所得税と利子税の納期限（出国から5年4か月）',
- tl_deferralDueExt:'延長した場合の納期限（出国から10年4か月）',
- tl_today:'今日',
- tlIn:'あと {v}', tlAgo:'{v} 経過', tlToday:'当日',
- tlApprox:'目安',
- tlApproxNote:'「目安」の付いた日付は、「◯年を経過する日」の数え方が資料で一つに定まらないため、応当日で計算した概算です。実際の期限は税理士にご確認ください。',
- tlRecur:'毎年',
-
- statuteHead:'知らずに出国した場合',
- statuteBody:'この制度が関係する所得税の更正・決定の期間制限は原則7年です。納税管理人の届出と税務代理権限証書の提出があれば5年になります。つまり、届け出ずに出国した場合、7年間さかのぼって課税される可能性があります。',
- fxCreditHead:'移住先でも同じ含み益に課税されたら',
- fxCreditBody:'日本は出国の時点の含み益に課税します。その後、移住先の国で実際に売ると、その国も同じ利益に課税することがあります。同じ儲けに二重に課税される状態です。この場合、納税猶予を使っていれば、外国所得税を納付することとなる日から4か月以内に更正の請求をすることで、外国税額控除を適用できます。ただしこの措置は納税猶予を受けていることが条件なので、猶予を使わずに出国前に納めきった方は使えません。贈与・相続の場合も対象外です。移住先の税制と合わせた判断になるため、税理士にご相談ください。',
- shareNote:'リンクには、入力した金額や日付がそのまま含まれます。税理士など、渡してよい相手かをご確認ください。サーバーには送られませんが、ブラウザの履歴には残ります。',
-
- inheritSum:'ご家族が1億円以上の有価証券等をお持ちで、相続人に海外在住の方がいる場合',
- inheritWho:'本人の出国だけでなく、相続でも同じ課税が起きます。ご自身の出国だけを調べたい方は開く必要はありません。',
- inheritBody:'1億円以上の対象資産を持つ居住者が亡くなり、海外に住む相続人や受遺者がその資産を取得すると、亡くなった方に所得税がかかります（国外転出（相続）時課税）。準確定申告の期限は、相続があったことを知った日の翌日から4か月を経過した日の前日です。資産を取得しない相続人も申告が必要です。海外在住の相続人が複数いる場合、納税管理人の届出は全員の連署でします。限定承認の場合はこの制度は適用されませんが、別の規定でみなし譲渡課税が生じます。ここは判定が重く、遺産分割の状況にも左右されるため、このツールでは判定せず案内にとどめます。該当しそうなら税理士にご相談ください。',
- giftSum:'海外に住むご家族へ有価証券等を贈与する予定がある場合',
- giftWho:'贈与でも同じ課税が起きます。贈与の予定がない方は開く必要はありません。',
- giftBody:'1億円以上の対象資産を持つ居住者が、海外に住む親族等へその一部でも贈与すると、贈与した側に所得税がかかります（国外転出（贈与）時課税）。1億円の判定は、贈与した分だけでなく、贈与の時に持っていた対象資産の全部の合計で行います。申告期限は贈与した年の翌年3月15日です。贈与する方が日本に住み続ける場合、納税猶予を受けるのに納税管理人の届出は要りません（ただし猶予期間中にご自身が出国するなら、その時までに届出が必要です）。なお、贈与と相続では外国税額控除は使えません。',
-
- estSum:'含み益のおおよその金額が分かっている方へ',
- estWho:'税額の桁を知るためのものです。取得価額が分からない方は開く必要はありません。',
- estQ:'含み益の合計（円）',
- estHelp:'基準日の値段から、買ったときの値段を引いた金額です。',
- estResult:'所得税＋復興特別所得税は およそ {n} 円',
- estNote:'上場株式等の申告分離課税（15.315%）を前提とした概算です。資産の種類によっては事業所得や雑所得になり、税率が変わります。住民税はかかりません。実際の税額は税理士にご確認ください。',
-
- srcHead:'出典（一次情報）',
- s_ntaPortal:'国税庁「国外転出時課税制度」',
- s_ntaOutline:'国税庁「国外転出時課税制度のあらまし」（平成27年5月・PDF）',
- s_ntaFaq:'国税庁「国外転出時課税制度（FAQ）」（令和5年6月最終改訂・PDF）',
- s_ntaAnswer:'国税庁 タックスアンサー No.1478「国外転出をする場合の譲渡所得等の特例」',
- s_ntaForms:'国税庁「国外転出時課税制度関係の各種様式」',
- refHead:'参考',
- s_egov:'e-Gov法令検索「所得税法」（第60条の2ほか）',
- s_zeirishi:'国税庁「税理士情報検索サイト」',
- asof:'法令基準日 {law} ／ 参照したFAQの改訂 {faq} ／ 一次情報との突合 {rev}',
-
- discHead:'免責事項',
- disc:'このツールは制度の存在に気づくためのものであり、税務上の助言ではありません。作成者は税理士ではありません。判定結果は入力された内容だけに基づく目安で、正確性・完全性を保証しません。実際の申告・納税・届出は、必ず税理士または所轄の税務署にご確認ください。特に、非上場株式の時価、住所や居所の認定、在留資格による期間の除外は、専門家の判断が必要な領域です。このツールの利用によって生じたいかなる損害についても、作成者は責任を負いません。',
-
- ps_head:'入力した内容',
- ps_stay:'出国前10年間の居住',
- ps_agent:'納税管理人の届出',
- ps_deferral:'納税猶予',
- ps_basis:'評価の基準日',
- ps_total:'対象資産の時価合計（円）',
- ps_gain:'含み益の概算（円）',
- ps_on:'この判定を出した日',
- ps_yes:'予定あり', ps_no:'予定なし',
- btnPrint:'印刷 / PDF', btnShare:'この条件のリンクをコピー', btnReset:'最初から',
- shareCopied:'リンクをコピーしました', shareFailed:'コピーできませんでした。URLを手動でコピーしてください',
- copyright:'© 2026 fpyamamoto. All Rights Reserved.・無断複製・再配布を禁じます'
-},
-en:{
- title:'Japan Exit Tax Checker',
- tagline:'Japan taxes unrealised gains on securities when a long-term resident emigrates. Enter one date and see whether it applies, and by when you must act.',
- notthis:'This is not the 1,000 yen International Tourist Tax added to airline tickets. This is income tax on unrealised gains on securities.',
- langJa:'JA', langEn:'EN',
-
- s1no:'STEP 1', s1q:'Is your main base of life currently in Japan?',
- s1help:'Consider where your work, home and family are centred. Answer no if you are on a long overseas posting with no plan to return.',
- s1yes:'Yes, based in Japan', s1nono:'No, already based abroad',
-
- s2no:'STEP 2', s2q:'Do you plan to move abroad?',
- s2help:'This means ceasing to have a home or base of life in Japan for a year or more. Travel and short business trips do not count.',
- s2yes:'Yes', s2nono:'No',
- s2date:'Planned date of departure',
- s2dhelp:'Every deadline is calculated backwards from this single date. An estimate is fine if the date is not fixed.',
-
- s3no:'STEP 3', s3q:'Did you live in Japan continuously for the 10 years before that date?',
- s3help:'If you spent some years abroad, choose “I spent time abroad” and you can enter the periods.',
- s3yes:'Continuously in Japan', s3nono:'I spent time abroad',
- s3plabel:'Periods living in Japan',
- s3from:'from', s3to:'to', s3add:'+ Add a period', s3del:'Remove',
- s3defSum:'For people who have taken the exit tax deferral before',
- s3defWho:'Time spent abroad can still count as time in Japan. Skip this if this is your first departure.',
- s3defNote:'Any period during which you were using the exit tax deferral counts towards the five-year test as time in Japan, even though you had no home or residence here. Add those periods to the entries above.',
- s3visaSum:'For people who are not Japanese nationals',
- s3visaWho:'Some residence statuses mean your time in Japan is not counted. Japanese nationals need not open this.',
- s3visaNote:'Time spent under certain residence statuses does not count towards the five-year test (diplomat, professor, artist, business manager, legal and accounting services, medical, researcher, instructor, intra-company transferee, temporary visitor, student, and others). Exclude those periods above. Time spent before 30 June 2015 as a permanent resident, spouse of a permanent resident or long-term resident is also not counted.',
-
- s4no:'STEP 4', s4q:'Before leaving, will you register someone with the tax office to handle your Japanese tax matters?',
- s4help:'This registration changes the date on which your securities are valued. Most people have never heard of it. If you register, valuation is at the date of departure and you can file by 15 March of the following year. If you do not, valuation is exactly three months before your planned departure and you must file before you leave.',
- s4yes:'Yes, I will register', s4nono:'No plans, or I did not know',
- s4defQ:'I also plan to defer the payment',
- s4defNote:'An option if you cannot pay now. It requires posting security and stating the election on your return. Tick this and the deferral deadlines are added to the timeline.',
-
- s5no:'STEP 5', s5q:'What is the total market value of the following on your valuation date?',
- s5basisAt:'Your valuation date: the value on the date of departure.',
- s5basis3m:'Your valuation date: the value on {date}, exactly three months before your planned departure.',
- s5inc:'Included in the total',
- s5incNote:'Taken at the market price on your valuation date, not at what you paid.',
- s5exc:'Left out of the total',
- s5excNote:'However much of these you hold, they do not affect the 100 million yen test.',
- s5amount:'Total market value (JPY)',
- s5where:'The closest figure is the total valuation shown in your brokerage account. Add up every account you hold. Shares and funds go in at their price on the day even when they sit at a loss, never as a negative. Open margin trades, when-issued trades and derivatives are the exception: they go in as the gain or loss you would realise on settling them, so a loss goes in as a negative.',
- s5fxSum:'For people holding assets in foreign currency',
- s5fxWho:'How to convert into yen. Skip this if everything is in yen.',
- s5fxNote:'Convert at the TTM (the mid rate between the TTS and TTB, not the TTB or TTS itself) on your valuation date, as published by a financial institution you deal with. This follows NTA circular 60-2-8. This tool does not fetch rates. A fetched rate would look right and be wrong. If your total is far from 100 million yen, a rough conversion is enough. Within ten per cent either side, use the actual TTM.',
- s5rsSum:'For people holding employer shares or stock options',
- s5rsWho:'Some holdings stay out of the total. Skip this if you hold no employer shares.',
- s5rsNote:'Two things stay out of the total: restricted stock whose transfer restriction has not yet been lifted (unvested RSUs), and securities representing tax-qualified stock options. The statute limits both to what would produce Japan-source income, so the answer turns on where the income arises. If yours come from an overseas parent company, or the source is otherwise unclear, take this one point to a tax accountant. Shares that have vested and are freely sellable go into the total as normal.',
-
- a_listedStock:'Listed shares', a_unlistedStock:'Unlisted shares (own company, family company)',
- a_fund:'Investment trusts', a_bond:'Bonds (government, corporate, discount bonds)',
- a_nisa:'Assets in a NISA account', a_nisaNote:'Tax-free on sale, but it still goes into the total',
- a_tokumeiKumiai:'Interests in a silent partnership (tokumei kumiai)',
- a_marginTrading:'Open margin trades', a_whenIssued:'Open when-issued trades',
- a_derivative:'Open derivatives (futures, options, FX)',
- a_crypto:'Crypto assets', a_cryptoNote:'Still outside the scope after the 2026 move to separate taxation',
- a_cash:'Cash and deposits', a_realEstate:'Real estate',
- a_niniKumiai:'Interests in a general partnership (nini kumiai)', a_niniNote:'Treated the opposite way to a silent partnership',
- a_unvestedRS:'Unvested restricted stock (RSU)',
- a_qualifiedSO:'Tax-qualified stock options',
- a_overseasNote:'Holdings in overseas brokerage accounts go into the total too.',
-
- v_subject:'This applies to you',
- v_notSubject:'This does not apply to you',
- v_undecidable:'This tool cannot decide',
- v_incomplete:'Not enough information yet',
- incompleteCount:'Answer {n} more and you get a result',
- needNext:'next',
- need_isResident:'STEP 1: Whether your base of life is in Japan',
- need_willDepart:'STEP 2: Whether you plan to move abroad, and when',
- need_alwaysInJapan:'STEP 3: Whether you lived in Japan for all 10 years',
- need_periods:'STEP 3: The periods you lived in Japan (start and end)',
- need_hasTaxAgent:'STEP 4: Whether you will register someone for your Japanese tax matters',
- need_totalValue:'STEP 5: The total value of covered assets',
-
- r_notResident:'If your base of life is not in Japan, you are not a resident for this rule.',
- r_noDeparturePlan:'This rule is irrelevant while you stay in Japan. Check again if a move abroad becomes likely.',
- r_departureDateRequired:'Enter your planned date of departure. Without it, the valuation date cannot be fixed.',
- r_beforeEnforcement:'This rule applies to departures on or after 1 July 2015.',
- r_residencyNotMet:'You did not live in Japan for more than five years within the ten years before departure. The amount does not matter.',
- r_thresholdNotMet:'The total on your valuation date is below 100 million yen.',
- r_notEntered:'Enter the total amount.',
- r_noResponseDay:'Your planned departure is {dep}, and the day exactly three months earlier does not exist on the calendar ({ym} has no such day). The National Tax Agency has not published which day to use in this case. Moving the date by one day, or registering a tax agent, avoids the problem entirely (registering makes the valuation date the departure date itself).',
- res_span:'Time in Japan: {span}',
- res_over:'{diff} past the five-year line',
- res_under:'{diff} short of the five-year line',
- res_exact:'Exactly five years. The test is more than five years, so a single day short puts you outside it',
- res_near:'Within 30 days of the five-year line. Here the answer turns on how residence is established and how precisely you recall the dates. Check with a tax accountant.',
- res_basis:'Counted following NTA circular 2-4-3. That circular governs the non-permanent-resident test under Article 2(1)(iv), which is worded almost identically, so it is applied here by analogy; no circular has been published for the exit tax itself. Years, months and days are totalled separately, then 30 days count as a month and 12 months as a year. A period runs from the day after entry to the day of departure.',
- ymd_y:'{n} years', ymd_m:'{n} months', ymd_d:'{n} days',
- ymd_y1:'{n} year', ymd_m1:'{n} month', ymd_d1:'{n} day',
- r_invalidPeriod:'The dates of a period are not valid.',
- r_reversedPeriod:'A period starts after it ends.',
-
- v_subjectSub:'On departure your securities are treated as sold at their value, and income tax plus special reconstruction income tax is charged on the unrealised gain. You do not have to sell anything. Local inhabitant tax does not apply.',
- v_notSubjectSub:'On these facts no charge arises under this rule. A change in your circumstances can change the answer.',
- v_undecidableSub:'Read the reason below. This is a situation worth taking to a professional.',
-
- termHead:'The legal name',
- term_subject:'The rule is the Exit Taxation on Unrealised Capital Gains, under Article 60-2 of the Income Tax Act. You meet both tests: the total value of covered assets at departure is 100 million yen or more, and you lived in Japan for more than five years within the ten years before departure.',
- distanceOver:'{n} yen above the 100 million yen line',
- distanceUnder:'{n} yen below the 100 million yen line',
- nearThreshold:'You are within ten per cent of the line. Here the answer turns on the market price on your valuation date. Recalculate with the actual closing price on that day.',
-
- tlHead:'Counting back from {date}',
- tl_valuationDate:'Your assets are valued at this day, exactly three months before departure',
- tl_taxAgentDeadline:'Register a tax agent by this day. Miss it and there is no deferral: you pay in full before you leave. The relief when prices fall and the foreign tax credit both depend on the deferral, so they go with it',
- tl_filingNoAgent:'File and pay by this day, before you leave',
- tl_filingWithAgent:'Filing and payment deadline',
- tl_collateral:'Post security by this day too',
- tl_continuationNotice:'File the continued-application notice by this day, until the deferral ends',
- tl_extensionNotice:'To extend deferral by five years, file the extension notice by this day',
- tl_revocationLimit:'Return by this day still holding the assets and the charge can be cancelled (claim within four months of returning). This one alone survives without a tax agent',
- tl_deferralDue:'Deferred tax and interest fall due (five years and four months after departure)',
- tl_deferralDueExt:'Due date if extended (ten years and four months after departure)',
- tl_today:'Today',
- tlIn:'in {v}', tlAgo:'{v} ago', tlToday:'today',
- tlApprox:'approx',
- tlApproxNote:'Dates marked approx are calculated on the anniversary day, because the published material does not fix a single way to count "the day on which N years have elapsed". Confirm the real deadline with a tax accountant.',
- tlRecur:'yearly',
-
- statuteHead:'If you leave without knowing',
- statuteBody:'The assessment period for income tax involving this rule is seven years as a rule, reduced to five where a tax agent is registered and a power of attorney filed. Leaving without registering exposes seven years to reassessment.',
- fxCreditHead:'If your new country taxes the same gain',
- fxCreditBody:'Japan taxes the gain as it stands on the day you leave. When you later sell in your new country, that country may tax the same gain again. Where that happens you can claim a foreign tax credit by filing a request for correction within four months of the day the foreign tax becomes payable. This relief depends on being in the deferral, so it is closed to anyone who paid in full before leaving. It is also unavailable for the gift and inheritance versions of the rule. The answer depends on your new country as much as on Japan, so take it to a tax accountant.',
- shareNote:'The link carries the amounts and dates you entered. Check who you are sending it to. Nothing goes to a server, but it does stay in your browser history.',
-
- inheritSum:'If a family member holds 100 million yen or more in securities and an heir lives abroad',
- inheritWho:'The same charge arises on inheritance, not only on your own departure. Skip this if you only want your own case.',
- inheritBody:'If a resident holding 100 million yen or more in covered assets dies and an heir or legatee living abroad receives them, income tax is charged on the deceased. The return is due the day before four months have elapsed from the day after the death became known. Heirs who receive none of the assets must still file. Where several heirs live abroad, the tax agent registration is filed jointly by all of them. A qualified acceptance takes the case outside this rule, though a deemed-transfer charge arises under another provision. This is a heavy assessment that depends on how the estate is divided, so this tool flags it rather than deciding it. Take it to a tax accountant.',
- giftSum:'If you plan to give securities to a family member living abroad',
- giftWho:'The same charge arises on gifts. Skip this if you plan no gift.',
- giftBody:'If a resident holding 100 million yen or more in covered assets gifts any part of them to a relative living abroad, income tax is charged on the giver. The 100 million yen test looks at everything held at the time of the gift, not only the part given. The return is due on 15 March of the following year. A giver who stays in Japan needs no tax agent to take the deferral, though one is needed if the giver later leaves during the deferral period. Note that the foreign tax credit is not available for the gift or inheritance versions of this rule.',
-
- estSum:'If you already know your approximate unrealised gain',
- estWho:'This gives the order of magnitude of the tax. Skip it if you do not know your acquisition cost.',
- estQ:'Total unrealised gain (JPY)',
- estHelp:'The value on your valuation date less what you paid.',
- estResult:'Income tax plus reconstruction tax: roughly {n} yen',
- estNote:'A rough figure assuming separate taxation of listed securities at 15.315 per cent. Some assets fall into business or miscellaneous income at different rates. Local inhabitant tax does not apply. Confirm the real figure with a tax accountant.',
-
- srcHead:'Primary sources',
- s_ntaPortal:'National Tax Agency, Exit Taxation on Unrealised Capital Gains',
- s_ntaOutline:'National Tax Agency, Outline of the rule (May 2015, PDF, Japanese)',
- s_ntaFaq:'National Tax Agency, FAQ (last revised June 2023, PDF, Japanese)',
- s_ntaAnswer:'National Tax Agency, Tax Answer No.1478 (Japanese)',
- s_ntaForms:'National Tax Agency, Forms for this rule (Japanese)',
- refHead:'Further reading',
- s_egov:'e-Gov, Income Tax Act (Article 60-2 and others, Japanese)',
- s_zeirishi:'National Tax Agency, Directory of registered tax accountants (Japanese)',
- asof:'Law as at {law} / FAQ revision referenced {faq} / Checked against primary sources {rev}',
-
- discHead:'Disclaimer',
- disc:'This tool exists so that people notice the rule. It is not tax advice, and its author is not a licensed tax accountant. The result is an indication based only on what you entered, with no warranty of accuracy or completeness. Confirm any filing, payment or registration with a licensed tax accountant or your tax office. The valuation of unlisted shares, the finding of residence, and the exclusion of periods by residence status all need professional judgement. This tool is aimed at residents of Japan; the rule described is Japanese law and has no application elsewhere. The author accepts no liability for any loss arising from its use.',
-
- ps_head:'What you entered',
- ps_stay:'Time in Japan, last 10 years',
- ps_agent:'Tax agent registration',
- ps_deferral:'Deferral',
- ps_basis:'Valuation date',
- ps_total:'Total market value (JPY)',
- ps_gain:'Estimated unrealised gain (JPY)',
- ps_on:'Result produced on',
- ps_yes:'planned', ps_no:'not planned',
- btnPrint:'Print / PDF', btnShare:'Copy a link to these answers', btnReset:'Start over',
- shareCopied:'Link copied', shareFailed:'Could not copy. Please copy the URL manually',
- copyright:'© 2026 fpyamamoto. All Rights Reserved. Unauthorised reproduction or redistribution is prohibited.'
-}};
-
-/* ============================================================
-   日付ユーティリティ（すべてUTC）
-   ============================================================ */
-const D={
- daysInMonth:(y,m)=>new Date(Date.UTC(y,m,0)).getUTCDate(),
- isValid:p=>!!p&&Number.isInteger(p.y)&&p.m>=1&&p.m<=12&&p.d>=1&&p.d<=D.daysInMonth(p.y,p.m),
- ms:p=>Date.UTC(p.y,p.m-1,p.d),
- of:ms=>{const d=new Date(ms);return{y:d.getUTCFullYear(),m:d.getUTCMonth()+1,d:d.getUTCDate()};},
- diffDays:(a,b)=>Math.round((D.ms(a)-D.ms(b))/86400000),
- dow:p=>new Date(D.ms(p)).getUTCDay(),
- cmp:(a,b)=>D.ms(a)-D.ms(b),
- iso:p=>`${p.y}-${String(p.m).padStart(2,'0')}-${String(p.d).padStart(2,'0')}`,
- parse:s=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s||'');if(!m)return null;
-   const p={y:+m[1],m:+m[2],d:+m[3]};return D.isValid(p)?p:null;},
- shiftResponseDay(p,{years=0,months=0}={}){
-   const t=p.m-1+months+years*12, y=p.y+Math.floor(t/12), m=((t%12)+12)%12+1;
-   return p.d>D.daysInMonth(y,m)?null:{y,m,d:p.d};},
- shiftClamped(p,o){const e=D.shiftResponseDay(p,o);if(e)return e;
-   const t=p.m-1+(o.months||0)+(o.years||0)*12,y=p.y+Math.floor(t/12),m=((t%12)+12)%12+1;
-   return{y,m,d:D.daysInMonth(y,m)};},
- shiftIfWeekend(p){const w=D.dow(p);
-   if(w===0)return D.of(D.ms(p)+86400000); if(w===6)return D.of(D.ms(p)+2*86400000); return p;}
+  ja: {
+    docTitle:"海外預金 税務シミュレーター",
+    eyebrow:"海外預金 税務シミュレーター",
+    h1:'海外預金の税金と<br class="sp-break">確定申告の要否を概算',
+    lede:"日本在住で海外に外貨預金を持つ方向けに、利息・現地の源泉税・日本での確定申告の要否をその場で試算します。国を選ぶと源泉税率が自動で入ります。",
+    chip1:"単利・複利に対応", chip2:"為替差益は任意", chip3:"概算・専門家相談前提",
+    scope:"",
+    s1_title:"利息の概算と申告要否の判定",
+    s1_sub:"預金の情報を入力すると、利息・源泉税・判定が自動で更新されます。",
+    inputs:"入力項目",
+    f_country:"預入国（預金を保有している国・地域）",
+    f_manualRate:"源泉税率（手入力）",
+    h_manualRate:"リストにない国の非居住者向け源泉税率を入力してください。",
+    f_deposit:"預金額（現地通貨）",
+    f_rate:"年利", f_years:"預入期間",
+    h_years:"日本人に多いのは3年・5年定期です。1年未満は 0.5 のように入力できます。",
+    f_payMode:"利息の受取方法", pay_simple:"満期一括", pay_compound:"毎年受取・複利",
+    payHintSimple:"満期時に利息をまとめて受け取る（単利）。利息は満期の年に一括して課税されます。",
+    payHintCompound:"毎年利息を受け取り、税引後の額を元本に再投資する（複利）。利息は毎年課税され、原則として毎年の申告対象になります。",
+    f_fx:"想定為替レート（現地通貨1単位＝◯円）",
+    h_fx:"例：1米ドル＝150円なら 150、1タイバーツ＝4.3円なら 4.3。",
+    fxRole:"（預入時のレートとして使用します）",
+    fx_toggle:"円に戻したときの損益も見る", fx_toggle_sub:"任意。円転しない場合は不要です。",
+    f_fxOut:"円転時の為替レート（現地通貨1単位＝◯円）",
+    h_fxOut:"円に戻すとき（満期・解約時）の想定レート。上の「想定為替レート」を預入時のレートとして計算します。",
+    f_convMode:"円に戻す範囲", conv_all:"元本＋利息", conv_interest:"利息のみ",
+    h_convMode:"元本を外貨のまま保有し続ける場合、その元本部分に為替差益は生じません。",
+    f_salaryYN:"会社員として給与収入は2,000万円以下ですか？", yes:"はい", no:"いいえ",
+    f_side:"副業などの別収入（年間の所得金額）",
+    h_side:"収入から必要経費を引いた所得。なければ 0 のまま。利息と合算して20万円ラインを判定します。",
+    ledger:"利息と源泉税", ledgerSum:y=>`利息と源泉税（${y}年間の合計）`,
+    l_pretaxLocal:"税引前利息（現地通貨）", l_pretaxLocalSum:"税引前利息 合計（現地通貨）",
+    l_taxLocal:"現地の源泉税（現地通貨）", l_afterLocal:"税引後 受取利息（現地通貨）",
+    l_finalBal:"満期時の元利合計（現地通貨）", l_yen:"円換算",
+    l_pretaxYen:"税引前利息", l_pretaxYenSum:"税引前利息 合計",
+    l_taxYen:"現地の源泉税", l_afterYen:"税引後 手取り",
+    y_title:"年ごとの内訳（複利）", y_year:"年", y_open:"年初残高", y_int:"利息", y_wht:"源泉税", y_close:"年末残高",
+    y_note:"毎年利息を受け取り、税引後の額を元本に再投資した場合の推移です。金額は現地通貨。<br>「*」は1年未満の端数期間を示します。",
+    yearSuffix:"年目",
+    fx_title:"円転による為替損益（雑所得）", fx_amt:"円転する外貨額（現地通貨）",
+    fx_diff:"為替レートの差（円）", fx_gain:"為替差益", fx_loss:"為替差損",
+    fxNoteGain:'為替差益は<strong>雑所得</strong>として総合課税の対象です。20万円ラインの判定にも、利息と合算して含めます。',
+    fxNoteGainPrincipal:'<br>元本を外貨のまま保有する場合、その元本部分に為替差益は生じません。',
+    fxNoteLoss:'為替差損は他の黒字の<strong>雑所得</strong>から控除できますが、給与所得などとは損益通算できません。<br>本アプリでは、差損は0として安全側に判定します。',
+    c_rateLabel:"適用される源泉税率", c_treatyLabel:"日本との租税条約",
+    treatyYes:"有", treatyNo:"無", treatyNa:"—",
+    srcTreaty:"財務省「租税条約等の一覧」で条約を確認", srcDomestic:"ジェトロ「国・地域別に見る」で現地税制を確認",
+    prompt:"＊印の必須項目をすべて入力すると、判定が表示されます。",
+    stampGo:"申告\n不要", stampFile:"要\n申告",
+    vGoTitle:"所得税の確定申告は原則不要と考えられます",
+    vFileTitle:"確定申告が必要な可能性があります",
+    vGoReason:(cmp,fx)=>`給与2,000万円以下・${cmp?"1年あたりの利息":"利息"}${fx?"・為替差益":""}と別収入の合計が20万円以下、の条件を満たしています（住民税は別途ご確認を）。`,
+    vSalary:"給与収入が2,000万円を超えるため、金額にかかわらず申告が必要です。",
+    vCompound:fx=>`1年あたりの利息（円換算）${fx?"・為替差益":""}と別収入の合計が20万円を超えるため、毎年の申告が必要です。`,
+    vSimple:fx=>`別収入と利息（円換算）${fx?"・為替差益":""}の合計が20万円を超えるため、申告が必要です。`,
+    s2_title:"申告不要と判定された方へ", s2_sub:"どんなときに税金・申告が発生するかを確認しておきましょう。",
+    s2_h:"次のいずれかに当てはまると「申告が必要」に変わります",
+    s2_li1:"利息（円換算）と副業などの<strong>別収入の合計が年間20万円を超えた</strong>とき。期間を延ばす・預金額を増やす・金利や為替が上振れすると、20万円ラインを超えます。",
+    s2_li2:"別収入（副業・不動産・他の投資益など）がある場合は<strong>利息と合算して判定</strong>します。利息単独で20万円以下でも、合算で超えることがあります。",
+    s2_li3:"<strong>給与収入が2,000万円を超える</strong>とき。金額にかかわらず確定申告が必要です。",
+    s2_li4:"<strong>住民税は別扱い</strong>です。所得税の20万円ルールは住民税には適用されません。所得税が不要でも住民税の申告が必要な場合があります。",
+    s3_title:"日本の所得税・外国税額控除の概算",
+    s3_sub:"利子は日本で総合課税（累進）になります。追加で数点を入力してください。",
+    s3_assume:"前提：社会保険料＝給与収入×15％・基礎控除48万円で所得控除を自動見積り／住民税は一律10％・復興特別所得税2.1％／控除限度額の国外所得は所得総額の90％を上限（調整国外所得金額）／条約の限度税率を超えて現地徴収された分は日本で控除できない場合があります。あくまで概算です。",
+    s3_inputs:"追加の入力項目",
+    f_salary:"給与収入（額面・年間）", h_salary:"源泉徴収票の「支払金額」。",
+    f_dedMode:"所得控除の見積り方法", ded_auto:"自動", ded_manual:"手入力",
+    h_dedMode:"ライトに使う方は「自動」でOK。",
+    f_manualDed:"所得控除の合計（手入力）", h_manualDed:"源泉徴収票の各種控除の合計など。",
+    f_other:"その他の所得（副業・不動産等の所得金額）", h_other:"なければ 0 のまま。",
+    s3_from1:"第1段階の計算結果",
+    s3_interestLabel:"利子所得（円換算）", s3_localtaxLabel:"現地の源泉税（円換算）", s3_fxLabel:"為替差益（雑所得）",
+    s3_basisCompound:y=>`毎年課税されるため、1年あたり（最も利息が大きい年）で計算しています。実際は${y}年間、毎年の申告が必要です。`,
+    s3_basisSimple:"満期時に一括課税されるため、その年の金額で計算しています。",
+    s3_ledger:"この預金にかかる税と手取り",
+    s3_r1:"① 現地の源泉税（支払済）", s3_r2:"② 日本の利子課税（控除前）", s3_r3:"③ 外国税額控除（相殺）",
+    s3_r4:"④ 日本での実質追加負担", s3_r5:"⑤ この預金の税 合計", s3_r6:"⑥ 税引後の最終手取り",
+    s3_erate:"利子に対する実効税率",
+    carryNote:'◆ ヒント：今年の枠で引ききれなかった現地源泉税（繰越額 <span id="r_carry" style="font-family:var(--mono)">—</span>）は、翌年以降の確定申告で最長3年間、日本の税額からマイナスできる可能性があります（毎年の申告が必要）。',
+    src_title:"税率データについて", src_updated:"最終更新：", src_date:"2026年7月",
+    src_lede:"本アプリの源泉税率は、日本と各国の租税条約における<strong>利子の限度税率</strong>（条約がある国）、または<strong>現地国内法の非居住者源泉税率</strong>（条約がない国）に基づいています。日本は77本・81か国地域と租税条約を締結しており、条約がある場合は原則として条約の限度税率が国内法に優先します。",
+    src_t1:"条約の有無", src_t2:"条約の仕組み", src_t3:"外国税額控除", src_t4:"各国税制",
+    src_l1:"財務省「我が国の租税条約等の一覧」", src_l2:"財務省「租税条約に関する資料」",
+    src_l3:"国税庁 No.1240「居住者に係る外国税額控除」", src_l4:"ジェトロ「国・地域別に見る」",
+    src_d1:"日本が締結する租税条約の相手国・発効状況の一次情報。",
+    src_d2:"OECDモデル租税条約と、源泉地国課税の範囲についての解説。",
+    src_d3:"控除限度額の計算式と、3年間の繰越控除の根拠。",
+    src_d4:"各国の税制・源泉徴収税率の実務情報。",
+    src_warnTitle:"税率の扱いについて、3つの注意点があります。",
+    src_w1:"<strong>収録している税率は代表値です。</strong>利子の限度税率は、預金の種類・支払先の性質・条約の適用条件によって同じ国でも異なる場合があります（例：タイは条約上10〜25%、フィリピンは一部15%）。備考欄に記載のある国は特にご注意ください。",
+    src_w2:"<strong>条約の限度税率を超えて源泉徴収された分は、日本で控除できない場合があります。</strong>国税庁は、条約の規定により相手国が課すことができる額を超える部分は外国税額控除の対象外としています。超過分は原則として現地で還付請求すべきものです。",
+    src_w3:"<strong>条約は署名・発効により変動します。</strong>本アプリの税率は上記の更新時点のものです。実際の申告にあたっては、必ず最新の一次情報と専門家の確認をお願いします。",
+    act_title:"結果を保存・共有する", act_sub:"税理士への相談や、あとで見返すためにお使いください。",
+    act_print:"印刷 / PDFで保存", act_share:"この条件のURLをコピー", act_shared:"URLをコピーしました",
+    act_note:"「印刷 / PDFで保存」では、印刷画面の送信先で「PDFに保存」を選ぶとPDFになります。URLには入力した条件のみが含まれ、サーバーには何も送信されません。",
+    copyPrompt:"下記URLをコピーしてください",
+    ph_title:"海外預金 税務シミュレーション 概算結果", ph_date:"作成日：",
+    ph_note:"本書は概算であり、税務書類ではありません",
+    disc_title:"免責事項",
+    disc1:"本ツールは概算シミュレーションであり、正式な税務計算・税務書類ではありません。",
+    disc2:"作成者は税理士ではなく、税務・法務上の助言を行うものではありません。",
+    disc3:"各国の源泉税率・租税条約は国により異なり、随時変動します。税率は代表値であり、預金の種類や条約の適用条件により実際の税額は変わります。",
+    disc4:"為替差益は「円に戻したときの損益も見る」を有効にした場合のみ、雑所得として概算に含めます。実際の計算では預入時・払出時の正確なレート（原則TTM等）と取得原価の記録が必要です。為替差損は雑所得内でのみ通算でき、給与所得等とは損益通算できません。",
+    disc5:"外貨のまま同一通貨で預け替える場合、元本部分に為替差益は生じないとされています（所得税法施行令167条の6第2項）。",
+    disc6:"最終的な判断・申告手続きは、必ず税理士等の専門家にご相談ください。",
+    credit:"税率データの出典・更新日は「税率データについて」をご覧ください（2026年7月時点）",
+    copyright:"© 2026 fpyamamoto. All Rights Reserved.",
+    copyrightNote:"無断複製・再配布を禁じます",
+  },
+  en: {
+    docTitle:"Overseas Deposit Tax Simulator (Japan)",
+    eyebrow:"Overseas Deposit Tax Simulator",
+    h1:'Estimate the tax on overseas deposits <br class="sp-break">and whether you must file in Japan',
+    lede:"For Japanese residents holding deposits at overseas banks. Estimates interest, foreign withholding tax, and whether a Japanese tax return is required. Selecting a country fills in the withholding rate automatically.",
+    chip1:"Simple & compound", chip2:"FX gain optional", chip3:"Estimate only — consult a professional",
+    scope:"<strong>Scope:</strong> This tool implements <strong>Japanese</strong> tax law (the ¥200,000 filing threshold, progressive rates, and the Japanese foreign tax credit). It is useful only if you are a <strong>tax resident of Japan</strong>. It does not calculate tax for any other country. All amounts in yen (¥).",
+    s1_title:"Estimate interest and test the filing requirement",
+    s1_sub:"Enter your deposit details. Interest, withholding tax, and the verdict update automatically.",
+    inputs:"Inputs",
+    f_country:"Country where the deposit is held",
+    f_manualRate:"Withholding tax rate (manual)",
+    h_manualRate:"Enter the non-resident withholding rate for a country not on the list.",
+    f_deposit:"Deposit amount (local currency)",
+    f_rate:"Annual interest rate", f_years:"Term",
+    h_years:"3-year and 5-year fixed deposits are the most common in Japan. Use 0.5 for six months.",
+    f_payMode:"How interest is paid", pay_simple:"At maturity", pay_compound:"Annually (compound)",
+    payHintSimple:"Interest is paid as a lump sum at maturity (simple interest), and taxed in that single year.",
+    payHintCompound:"Interest is received each year and reinvested after tax (compound). It is taxed annually, so a return is generally required every year.",
+    f_fx:"Assumed FX rate (1 unit of local currency = ¥)",
+    h_fx:"e.g. enter 150 if US$1 = ¥150, or 4.3 if THB 1 = ¥4.3.",
+    fxRole:" (used as the rate at deposit)",
+    fx_toggle:"Also show gain/loss on converting back to yen", fx_toggle_sub:"Optional. Skip if you keep the foreign currency.",
+    f_fxOut:"FX rate at conversion (1 unit of local currency = ¥)",
+    h_fxOut:"The assumed rate when you convert back to yen (at maturity or withdrawal). The rate above is treated as the rate at deposit.",
+    f_convMode:"What you convert", conv_all:"Principal + interest", conv_interest:"Interest only",
+    h_convMode:"If you keep the principal in foreign currency, no FX gain arises on that principal.",
+    f_salaryYN:"Is your employment income ¥20,000,000 or less?", yes:"Yes", no:"No",
+    f_side:"Other income, e.g. side work (annual, net)",
+    h_side:"Income after deducting expenses. Leave at 0 if none. It is added to interest to test the ¥200,000 threshold.",
+    ledger:"Interest and withholding tax", ledgerSum:y=>`Interest and withholding tax (${y}-year total)`,
+    l_pretaxLocal:"Interest before tax (local currency)", l_pretaxLocalSum:"Total interest before tax (local currency)",
+    l_taxLocal:"Foreign withholding tax (local currency)", l_afterLocal:"Interest after withholding (local currency)",
+    l_finalBal:"Balance at maturity (local currency)", l_yen:"In Japanese yen",
+    l_pretaxYen:"Interest before tax", l_pretaxYenSum:"Total interest before tax",
+    l_taxYen:"Foreign withholding tax", l_afterYen:"Take-home after withholding",
+    y_title:"Year-by-year breakdown (compound)", y_year:"Year", y_open:"Opening", y_int:"Interest", y_wht:"Withheld", y_close:"Closing",
+    y_note:"Interest is received each year and reinvested after withholding tax. Amounts in local currency.<br>“*” marks a partial year.",
+    yearSuffix:"",
+    fx_title:"FX gain or loss on conversion (miscellaneous income)", fx_amt:"Amount converted (local currency)",
+    fx_diff:"FX rate difference (¥)", fx_gain:"FX gain", fx_loss:"FX loss",
+    fxNoteGain:'An FX gain is <strong>miscellaneous income</strong> and is aggregated with other income. It also counts toward the ¥200,000 filing threshold, together with interest.',
+    fxNoteGainPrincipal:'<br>If you keep the principal in foreign currency, no FX gain arises on that principal.',
+    fxNoteLoss:'An FX loss can offset other positive <strong>miscellaneous income</strong>, but not employment income. This tool treats a loss as zero, which is the conservative choice.',
+    c_rateLabel:"Withholding rate applied", c_treatyLabel:"Tax treaty with Japan",
+    treatyYes:"Yes", treatyNo:"No", treatyNa:"—",
+    srcTreaty:"Check the treaty — MOF list of Japan's tax treaties", srcDomestic:"Check local tax law — JETRO country guides",
+    prompt:"Fill in every field marked ＊ to see the verdict.",
+    stampGo:"NO\nFILING", stampFile:"FILING\nNEEDED",
+    vGoTitle:"An income tax return is generally not required",
+    vFileTitle:"A tax return is likely required",
+    vGoReason:(cmp,fx)=>`Employment income is ¥20m or less, and ${cmp?"annual interest":"interest"}${fx?", FX gain,":""} plus other income totals ¥200,000 or less. (Resident tax is assessed separately.)`,
+    vSalary:"Employment income exceeds ¥20,000,000, so a return is required regardless of the amounts.",
+    vCompound:fx=>`Annual interest${fx?", FX gain,":""} plus other income exceeds ¥200,000, so a return is required each year.`,
+    vSimple:fx=>`Interest${fx?", FX gain,":""} plus other income exceeds ¥200,000, so a return is required.`,
+    s2_title:"If no filing is required", s2_sub:"Worth knowing what would change that.",
+    s2_h:"Any of the following would make a return necessary",
+    s2_li1:"Interest (in yen) plus <strong>other income exceeds ¥200,000 in a year</strong>. A longer term, a larger deposit, or a higher rate or FX rate can push you over the line.",
+    s2_li2:"If you have other income (side work, property, other investment gains), it is <strong>aggregated with the interest</strong>. Interest alone may be under ¥200,000 while the total is not.",
+    s2_li3:"<strong>Employment income exceeds ¥20,000,000.</strong> A return is then required regardless of the amounts.",
+    s2_li4:"<strong>Resident tax is separate.</strong> The ¥200,000 rule applies to income tax only. A resident tax filing may still be required even when no income tax return is.",
+    s3_title:"Japanese income tax and the foreign tax credit",
+    s3_sub:"Interest is aggregated and taxed at progressive rates in Japan. A few more inputs are needed.",
+    s3_assume:"Assumptions: deductions estimated automatically as social insurance (15% of salary) plus the ¥480,000 basic deduction; resident tax at a flat 10%; special reconstruction income tax at 2.1%; foreign-source income in the credit limit is capped at 90% of total income (adjusted foreign source income). Foreign tax withheld above a treaty cap may not be creditable in Japan. These are estimates only.",
+    s3_inputs:"Additional inputs",
+    f_salary:"Employment income (gross, annual)", h_salary:"The gross amount on your withholding slip.",
+    f_dedMode:"How to estimate deductions", ded_auto:"Automatic", ded_manual:"Manual",
+    h_dedMode:"“Automatic” is fine for a quick estimate.",
+    f_manualDed:"Total deductions (manual)", h_manualDed:"e.g. the total of the deductions on your withholding slip.",
+    f_other:"Other income (side work, property, etc.)", h_other:"Leave at 0 if none.",
+    s3_from1:"Calculated in step 1",
+    s3_interestLabel:"Interest income (in yen)", s3_localtaxLabel:"Foreign withholding tax (in yen)", s3_fxLabel:"FX gain (miscellaneous income)",
+    s3_basisCompound:y=>`Because interest is taxed annually, this uses one year (the year with the largest interest). In practice a return is required in each of the ${y} years.`,
+    s3_basisSimple:"Because interest is taxed in a single lump at maturity, this uses that year's amount.",
+    s3_ledger:"Tax on this deposit, and what you keep",
+    s3_r1:"1. Foreign withholding tax (already paid)", s3_r2:"2. Japanese tax on interest (before credit)", s3_r3:"3. Foreign tax credit (offset)",
+    s3_r4:"4. Net additional Japanese tax", s3_r5:"5. Total tax on this deposit", s3_r6:"6. Final take-home after tax",
+    s3_erate:"Effective tax rate on interest",
+    carryNote:'◆ Note: foreign tax you cannot use this year (carry-forward <span id="r_carry" style="font-family:var(--mono)">—</span>) may be credited against Japanese tax for up to three subsequent years. A return must be filed each year.',
+    src_title:"About the tax rate data", src_updated:"Last updated: ", src_date:"July 2026",
+    src_lede:"Withholding rates come from the <strong>treaty cap on interest</strong> where a tax treaty with Japan exists, and from <strong>domestic-law non-resident rates</strong> where it does not. Japan has 77 tax treaties covering 81 countries and jurisdictions; where a treaty applies, its cap generally overrides domestic law.",
+    src_t1:"Treaty status", src_t2:"How treaties work", src_t3:"Foreign tax credit", src_t4:"Local tax law",
+    src_l1:"MOF — List of Japan's tax treaties", src_l2:"MOF — Materials on tax treaties",
+    src_l3:"NTA No.1240 — Foreign tax credit for residents", src_l4:"JETRO — Country and region guides",
+    src_d1:"Primary source on which countries have a treaty with Japan, and its status.",
+    src_d2:"On the OECD Model Convention and the scope of source-country taxation.",
+    src_d3:"The credit limit formula and the basis for the three-year carry-forward.",
+    src_d4:"Practical information on each country's tax system and withholding rates.",
+    src_warnTitle:"Three cautions about these rates.",
+    src_w1:"<strong>The rates shown are representative values.</strong> A treaty cap on interest can differ within the same country depending on the type of deposit, the nature of the payee, and the conditions for applying the treaty (Thailand ranges 10–25%; the Philippines is 15% in some cases). Pay particular attention to countries with a note.",
+    src_w2:"<strong>Tax withheld above a treaty cap may not be creditable in Japan.</strong> Japan's National Tax Agency excludes from the foreign tax credit any amount exceeding what the treaty permits the other country to impose. The excess should generally be reclaimed locally.",
+    src_w3:"<strong>Treaties change as they are signed and enter into force.</strong> These rates are current as of the date above. Always verify against primary sources and a professional before filing.",
+    act_title:"Save or share the result", act_sub:"Useful for a meeting with a tax accountant, or to revisit later.",
+    act_print:"Print / Save as PDF", act_share:"Copy a link to these inputs", act_shared:"Link copied",
+    act_note:"To create a PDF, choose “Save as PDF” as the destination in the print dialog. The link contains only the values you entered; nothing is sent to any server.",
+    copyPrompt:"Copy the URL below",
+    ph_title:"Overseas Deposit Tax — Estimated Result", ph_date:"Date: ",
+    ph_note:"An estimate. Not a tax document.",
+    disc_title:"Disclaimer",
+    disc1:"This tool produces estimates. It is not a formal tax calculation and not a tax document.",
+    disc2:"The author is not a licensed tax accountant, and this tool does not provide tax or legal advice.",
+    disc3:"Withholding rates and tax treaties differ by country and change over time. The rates here are representative values; the actual tax depends on the type of deposit and the conditions for applying the treaty.",
+    disc4:"An FX gain is included only when “Also show gain/loss on converting back to yen” is enabled, and is treated as miscellaneous income. A real calculation requires the precise rates at deposit and withdrawal (generally TTM) and records of the acquisition cost. An FX loss can be offset only within miscellaneous income, not against employment income.",
+    disc5:"Moving a deposit between institutions in the same foreign currency is generally treated as producing no FX gain on the principal (Order for Enforcement of the Income Tax Act, Art. 167-6(2)).",
+    disc6:"For any decision or filing, please consult a qualified tax professional.",
+    credit:"See “About the tax rate data” for sources and the update date (as of July 2026).",
+    copyright:"© 2026 fpyamamoto. All Rights Reserved.",
+    copyrightNote:"Unauthorised copying or redistribution is prohibited.",
+  }
 };
 
-/* ============================================================
-   判定エンジン
-   ============================================================ */
-function valuationDate(dep,hasAgent){
-  const r=hasAgent?RULES.valuation.withTaxAgent:RULES.valuation.withoutTaxAgent;
-  if(r.offsetMonths===0)return{ok:true,date:dep,basis:'atDeparture'};
-  const d=D.shiftResponseDay(dep,{months:r.offsetMonths});
-  return d?{ok:true,date:d,basis:'threeMonthsPrior'}
-          :{ok:false,reason:'noResponseDay',basis:'threeMonthsPrior'};
-}
-function thresholdCheck(total){
-  if(total===null||total===undefined||Number.isNaN(total))return{ok:false,reason:'notEntered'};
-  const t=RULES.threshold.amount;
-  return{ok:true,met:RULES.threshold.comparison==='gte'?total>=t:total>t,distance:total-t};
-}
-// 所基通2-4の3 に倣った国内在住期間の計算。
-// 「暦に従って計算し、1月に満たない期間は日をもって数える。複数ある場合は年数・月数・日数を
-//  それぞれ合計し、日数は30日をもって1月とし、月数は12月をもって1年とする。」
-// 日数の単純合計では、5年線の前後12日で結論が割れることを検証済み。
-function ymdSpanFrom(start,to){
-  if(D.cmp(start,to)>0)return{y:0,m:0,d:0};
-  let y=0,cur=start;
-  for(;;){const nx=D.shiftClamped(cur,{years:1});if(D.cmp(D.of(D.ms(nx)-86400000),to)>0)break;y++;cur=nx;}
-  let m=0;
-  for(;;){const nx=D.shiftClamped(cur,{months:1});if(D.cmp(D.of(D.ms(nx)-86400000),to)>0)break;m++;cur=nx;}
-  return{y,m,d:D.diffDays(to,cur)+1};
-}
-function residencyCheck(dep,always,periods){
-  if(always)return{ok:true,met:true,basis:'always'};
-  if(!periods||!periods.length)return{ok:false,reason:'periodsIncomplete'};
-  // 窓は所基通2-4の2 に倣い「出国日の10年前の同日」から「出国日の前日」まで
-  const ws=D.shiftClamped(dep,{years:-RULES.residency.lookbackYears});
-  const we=D.of(D.ms(dep)-86400000);
-  let Y=0,M=0,Dd=0;
-  for(const p of periods){
-    if(p.from===null||p.to===null)return{ok:false,reason:'periodsIncomplete'};
-    if(!D.isValid(p.from)||!D.isValid(p.to))return{ok:false,reason:'invalidPeriod'};
-    if(D.cmp(p.from,p.to)>0)return{ok:false,reason:'reversedPeriod'};
-    const clipped=D.cmp(p.from,ws)<0;
-    const from=clipped?ws:p.from, to=D.cmp(p.to,we)>0?we:p.to;
-    if(D.cmp(from,to)>0)continue;
-    // 入国の日の翌日から起算する。ただし窓で切られた側は入国日ではないので、そのまま算入する。
-    const s=ymdSpanFrom(clipped?from:D.of(D.ms(from)+86400000),to);
-    Y+=s.y;M+=s.m;Dd+=s.d;
-  }
-  M+=Math.floor(Dd/RULES.residency.counting.daysPerMonth);
-  Dd=Dd%RULES.residency.counting.daysPerMonth;
-  Y+=Math.floor(M/RULES.residency.counting.monthsPerYear);
-  M=M%RULES.residency.counting.monthsPerYear;
-  const per=RULES.residency.counting.daysPerMonth*RULES.residency.counting.monthsPerYear;
-  const dist=(Y*per+M*RULES.residency.counting.daysPerMonth+Dd)-RULES.residency.requiredYears*per;
-  return{ok:true,met:dist>0,basis:'computed',span:{y:Y,m:M,d:Dd},dist,
-         near:Math.abs(dist)<=RULES.residency.nearLineDays};
-}
-function buildTimeline(dep,o,today){
-  const flags={agent:!!o.hasTaxAgent,noAgent:!o.hasTaxAgent,
-               deferral:!!o.hasTaxAgent&&!!o.wantsDeferral};
-  const out=[];
-  for(const it of RULES.timeline.transfer){
-    if(it.showIf&&!flags[it.showIf])continue;
-    let date=null,und=null;
-    if(it.rule==='mar15OfNextYear')date=D.shiftIfWeekend({y:dep.y+1,m:3,d:15});
-    else if(it.dayRule==='responseDay'){date=D.shiftResponseDay(dep,it.offset);if(!date)und='noResponseDay';}
-    else if(it.offset&&(it.offset.years||it.offset.months))
-      date=it.precision==='approx'?D.shiftClamped(dep,it.offset):D.shiftResponseDay(dep,it.offset);
-    else date=dep;
-    out.push({id:it.id,date,und,precision:it.precision,severity:it.severity||'normal',
-              recurring:!!it.recurring,delta:date?D.diffDays(date,today):null});
-  }
-  return out.sort((a,b)=>(a.date&&b.date)?D.cmp(a.date,b.date):0);
-}
-// 何が足りないかを、設問の順に返す
-function missingList(s){
-  const out=[];
-  // 残りは単調に減ること。早期returnで数えると、答えるたびに件数が増えて見える。
-  if(s.isResident===null)out.push('isResident');
-  else if(s.isResident===false)return[];
-  // STEP 2 は設問が2つ（予定の有無・予定日）だが、画面の見出しは1つ。
-  // リスト側に無い番号を出さないため、両方そろって初めて消える1項目として見せる。
-  if(s.willDepart===false)return[];
-  if(s.willDepart===null||!D.isValid(s.departure))out.push('willDepart');
-  if(s.alwaysInJapan===null)out.push('alwaysInJapan');
-  else if(s.alwaysInJapan===false){
-    const bad=(!s.periods||!s.periods.length)||s.periods.some(p=>p.from===null||p.to===null);
-    if(bad)out.push('periods');
-  }
-  if(s.hasTaxAgent===null)out.push('hasTaxAgent');
-  if(s.totalValue===null||Number.isNaN(s.totalValue))out.push('totalValue');
-  return out;
-}
-function evaluate(s,today){
-  if(s.isResident===false)return{verdict:'notSubject',reasons:['notResident']};
-  if(s.willDepart===false)return{verdict:'notSubject',reasons:['noDeparturePlan']};
-  if(s.isResident===null||s.willDepart===null)return{verdict:'incomplete',reasons:[]};
-  if(!D.isValid(s.departure))return{verdict:'incomplete',reasons:['departureDateRequired']};
-  if(D.cmp(s.departure,RULES.meta.enforcedFrom)<0)return{verdict:'notSubject',reasons:['beforeEnforcement']};
-  if(s.alwaysInJapan===null)return{verdict:'incomplete',reasons:[]};
+let LANG = "ja";
+const t = k => (I18N[LANG] && I18N[LANG][k] !== undefined) ? I18N[LANG][k] : I18N.ja[k];
 
-  const res=residencyCheck(s.departure,s.alwaysInJapan,s.periods);
-  if(!res.ok&&res.reason==='periodsIncomplete')return{verdict:'incomplete',reasons:[],residency:res};
-  if(!res.ok)return{verdict:'undecidable',reasons:[res.reason],residency:res};
-  if(!res.met)return{verdict:'notSubject',reasons:['residencyNotMet'],residency:res};
-  if(s.hasTaxAgent===null)return{verdict:'incomplete',reasons:[],residency:res};
-
-  const val=valuationDate(s.departure,s.hasTaxAgent);
-  if(!val.ok)return{verdict:'undecidable',reasons:[val.reason],residency:res};
-
-  const th=thresholdCheck(s.totalValue);
-  if(!th.ok)return{verdict:'incomplete',reasons:[th.reason],valuation:val,residency:res};
-  if(!th.met)return{verdict:'notSubject',reasons:['thresholdNotMet'],valuation:val,residency:res,threshold:th};
-  return{verdict:'subject',reasons:[],valuation:val,residency:res,threshold:th,
-         timeline:buildTimeline(s.departure,s,today)};
-}
-
-/* ============================================================
-   状態
-   ============================================================ */
-const TODAY=(()=>{const n=new Date();return{y:n.getFullYear(),m:n.getMonth()+1,d:n.getDate()};})();
-let LANG='ja';
-const blank=()=>({isResident:null,willDepart:null,departure:null,alwaysInJapan:null,
-  periods:[],hasTaxAgent:null,wantsDeferral:false,totalValue:null,gain:null});
-let S=blank();
-
-/* ---- 文言ヘルパ ---- */
-const T=k=>I18N[LANG][k]!==undefined?I18N[LANG][k]:k;
-const fill=(k,o)=>String(T(k)).replace(/\{(\w+)\}/g,(_,n)=>o[n]!==undefined?o[n]:`{${n}}`);
-const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-// 教訓：鉤括弧付きの用語が行末で分断されるため、描画の出口で折り返し禁止を自動付与する
-const nb=h=>String(h).replace(/(「[^」]{1,24}」|『[^』]{1,24}』)/g,'<span class="nb">$1</span>');
-const money=n=>new Intl.NumberFormat(LANG==='ja'?'ja-JP':'en-US').format(Math.round(n));
-// 単位つきの数。単数形は辞書側に持つ（コードに英文法を書かない）
-const unit=(k,n)=>fill(n===1?k+'1':k,{n});
-// 「◯年◯か月◯日」。0の単位は出さない。全部0なら「0日」。
-const spanText=s=>{const p=[];
-  if(s.y)p.push(unit('ymd_y',s.y)); if(s.m)p.push(unit('ymd_m',s.m));
-  if(s.d||!p.length)p.push(unit('ymd_d',s.d));
-  return p.join(LANG==='ja'?'':' ');};
-// 期限までの距離。1年未満は日数のまま、それ以上は年・か月にする。
-// 「あと4034日」と言われても像が結ばない。日付そのものは隣に出ているので、
-// 遠い期限に日単位の精度は要らない。行は増やさない。
-const coarse=(from,to)=>{
-  let y=0,cur=from;
-  for(;;){const nx=D.shiftClamped(cur,{years:1}); if(D.cmp(nx,to)>0)break; y++; cur=nx;}
-  let m=0;
-  for(;;){const nx=D.shiftClamped(cur,{months:1}); if(D.cmp(nx,to)>0)break; m++; cur=nx;}
-  const p=[]; if(y)p.push(unit('ymd_y',y)); if(m)p.push(unit('ymd_m',m));
-  return p.length?p.join(LANG==='ja'?'':' '):unit('ymd_d',0);};
-const deltaText=(date,n)=>{
-  if(n===0)return T('tlToday');
-  const v=Math.abs(n)<365?unit('ymd_d',Math.abs(n))
-                         :coarse(n>0?TODAY:date, n>0?date:TODAY);
-  return n>0?fill('tlIn',{v}):fill('tlAgo',{v});};
-// 通達の単位（30日=1月・12月=1年）で表した距離を、年月日に戻す
-const distText=n=>{const per=RULES.residency.counting.daysPerMonth;
-  return spanText({y:Math.floor(n/(per*RULES.residency.counting.monthsPerYear)),
-    m:Math.floor((n%(per*RULES.residency.counting.monthsPerYear))/per), d:n%per});};
-const dateStr=p=>!p?'—':(LANG==='ja'
-  ?`${p.y}.${String(p.m).padStart(2,'0')}.${String(p.d).padStart(2,'0')}`
-  :`${p.y}-${String(p.m).padStart(2,'0')}-${String(p.d).padStart(2,'0')}`);
-
-/* ---- 静的スケルトン（入力要素は一度だけ生成し、以後作り直さない） ---- */
-function skeleton(){
-  const asset=(a,cls)=>`<li>${nb(esc(T('a_'+a.key)))}${a.note?`<span class="anote">${nb(esc(T('a_'+a.note)))}</span>`:''}</li>`;
-  document.getElementById('steps').innerHTML=`
-<section class="step" id="st1">
-  <span class="stepno" data-t="s1no"></span>
-  <p class="q" data-t="s1q"></p><p class="help" data-t="s1help"></p>
-  <div class="choices two" data-grp="isResident">
-    <button type="button" data-v="true"  data-t="s1yes"></button>
-    <button type="button" data-v="false" data-t="s1nono"></button>
-  </div>
-</section>
-
-<section class="step" id="st2" hidden>
-  <span class="stepno" data-t="s2no"></span>
-  <p class="q" data-t="s2q"></p><p class="help" data-t="s2help"></p>
-  <div class="choices two" data-grp="willDepart">
-    <button type="button" data-v="true"  data-t="s2yes"></button>
-    <button type="button" data-v="false" data-t="s2nono"></button>
-  </div>
-  <div class="field" id="fld-dep" hidden>
-    <label class="q" style="font-size:.87rem" for="in-dep" data-t="s2date"></label>
-    <input type="date" id="in-dep">
-    <p class="sidenote" data-t="s2dhelp"></p>
-  </div>
-</section>
-
-<section class="step" id="st3" hidden>
-  <span class="stepno" data-t="s3no"></span>
-  <p class="q" data-t="s3q"></p><p class="help" data-t="s3help"></p>
-  <div class="choices two" data-grp="alwaysInJapan">
-    <button type="button" data-v="true"  data-t="s3yes"></button>
-    <button type="button" data-v="false" data-t="s3nono"></button>
-  </div>
-  <div id="fld-per" hidden>
-    <p class="q" style="font-size:.87rem;margin-top:.9rem" data-t="s3plabel"></p>
-    <div class="periods" id="periods"></div>
-    <button type="button" class="addrow" id="btn-addrow" data-t="s3add" style="margin-top:.4rem"></button>
-  </div>
-  <details><summary><span data-t="s3visaSum"></span><span class="whofor" data-t="s3visaWho"></span></summary>
-    <div class="dbody"><p class="sidenote" data-t="s3visaNote"></p></div>
-  </details>
-  <details><summary><span data-t="s3defSum"></span><span class="whofor" data-t="s3defWho"></span></summary>
-    <div class="dbody"><p class="sidenote" data-t="s3defNote"></p></div>
-  </details>
-</section>
-
-<section class="step" id="st4" hidden>
-  <span class="stepno" data-t="s4no"></span>
-  <p class="q" data-t="s4q"></p><p class="help" data-t="s4help"></p>
-  <div class="choices two" data-grp="hasTaxAgent">
-    <button type="button" data-v="true"  data-t="s4yes"></button>
-    <button type="button" data-v="false" data-t="s4nono"></button>
-  </div>
-  <label class="check" id="fld-def" hidden>
-    <input type="checkbox" id="in-def">
-    <span><strong data-t="s4defQ"></strong><span class="sidenote" data-t="s4defNote"></span></span>
-  </label>
-</section>
-
-<section class="step" id="st5" hidden>
-  <span class="stepno" data-t="s5no"></span>
-  <p class="q" data-t="s5q"></p>
-  <p class="help" id="basis-line"></p>
-  <div class="assets">
-    <div class="acol inc"><h3 data-t="s5inc"></h3>
-      <p class="colnote" data-t="s5incNote"></p>
-      <ul class="alist">${RULES.assets.included.map(a=>asset(a)).join('')}</ul>
-      <p class="anote" style="margin-top:.35rem" data-t="a_overseasNote"></p>
-    </div>
-    <div class="acol exc"><h3 data-t="s5exc"></h3>
-      <p class="colnote" data-t="s5excNote"></p>
-      <ul class="alist">${RULES.assets.excludedCommon.map(a=>asset(a)).join('')}</ul>
-    </div>
-  </div>
-  <details><summary><span data-t="s5rsSum"></span><span class="whofor" data-t="s5rsWho"></span></summary>
-    <div class="dbody"><ul class="alist" style="margin-bottom:.5rem">
-      ${RULES.assets.excludedOptional.map(a=>`<li style="padding-left:1.1rem;color:var(--muted)">— ${nb(esc(T('a_'+a.key)))}</li>`).join('')}
-      </ul><p class="sidenote" data-t="s5rsNote"></p></div>
-  </details>
-  <div class="field" style="margin-top:1rem">
-    <label class="q" style="font-size:.87rem" for="in-amt" data-t="s5amount"></label>
-    <input type="text" inputmode="numeric" id="in-amt" placeholder="100,000,000">
-    <p class="sidenote" data-t="s5where"></p>
-  </div>
-  <details><summary><span data-t="s5fxSum"></span><span class="whofor" data-t="s5fxWho"></span></summary>
-    <div class="dbody"><p class="sidenote" data-t="s5fxNote"></p></div>
-  </details>
-</section>`;
-  // 資産リストは data-t を使わない部分があるため、言語切替時に作り直す必要がある。
-  // ただし入力要素（date/text）は含まれないため、フォーカスは飛ばない。
-}
-
-/* ---- 期間行：影響範囲だけを更新する（全体再描画しない） ---- */
-function addPeriodRow(v){
-  const i=S.periods.length; S.periods.push(v||{from:null,to:null});
-  const row=document.createElement('div'); row.className='prow'; row.dataset.i=i;
-  row.innerHTML=`<input type="date" data-k="from"><span data-t="s3to"></span>
-    <input type="date" data-k="to"><button type="button" data-del data-t="s3del"></button>`;
-  if(v&&v.from)row.querySelector('[data-k=from]').value=D.iso(v.from);
-  if(v&&v.to)  row.querySelector('[data-k=to]').value=D.iso(v.to);
-  row.addEventListener('input',e=>{
-    const k=e.target.dataset.k; if(!k)return;
-    S.periods[+row.dataset.i][k]=D.parse(e.target.value);
-    renderOutput();                         // 入力行のDOMには一切触らない
-  });
-  row.querySelector('[data-del]').addEventListener('click',()=>{
-    const idx=+row.dataset.i; S.periods.splice(idx,1); row.remove();
-    [...document.querySelectorAll('#periods .prow')].forEach((r,n)=>r.dataset.i=n);
-    renderOutput();
-  });
-  document.getElementById('periods').appendChild(row);
-  applyStatic(row);
-}
-
-// 金額入力：入力しながら3桁区切りを入れる。1億円の桁では0を1つ数え違えるだけで致命的。
-// カーソルは「左から数字が何個目か」で復元する。位置で戻すとカンマの増減でずれる。
-function bindMoney(el,set,after){
-  el.addEventListener('input',e=>{
-    const t=e.target, before=t.value, pos=t.selectionStart||0;
-    const nth=before.slice(0,pos).replace(/\D/g,'').length;   // カーソル左にある数字の個数
-    const neg=/^\s*-/.test(before);
-    const digits=before.replace(/\D/g,'');
-    const val=digits===''?null:(neg?-1:1)*Number(digits);
-    set(val);
-    const out=val===null?(neg?'-':''):money(val);
-    if(out!==before){
-      t.value=out;
-      let seen=0,i=0;
-      if(nth>0){ for(;i<out.length;i++){ if(/\d/.test(out[i])){ seen++; if(seen===nth){ i++; break; } } } }
-      else i=neg?1:0;
-      try{ t.setSelectionRange(i,i); }catch(err){}
-    }
-    if(after)after();
-  });
-}
-
-/* ---- 文言の流し込み（テキストのみ。入力要素は作り直さない） ---- */
-function applyStatic(root){
-  (root||document).querySelectorAll('[data-t]').forEach(el=>{ el.innerHTML=nb(esc(T(el.dataset.t))); });
-}
-
-/* ============================================================
-   描画は render() 一本に集約する（初期描画とイベントで二重に書かない）
-   ============================================================ */
-function render(){
-  document.documentElement.lang=LANG;
-  document.title=T('title');
-  document.querySelectorAll('.langsw button').forEach(b=>
-    b.setAttribute('aria-pressed',String(b.dataset.lang===LANG)));
-  ['title','tagline','notthis'].forEach(k=>document.getElementById('t-'+k).innerHTML=nb(esc(T(k))));
-  skeleton();                 // 言語に依存する資産リストを含むため作り直す
-  applyStatic();
-  restoreInputs();
-  renderOutput();
-}
-function restoreInputs(){
-  const dep=document.getElementById('in-dep');
-  if(S.departure)dep.value=D.iso(S.departure);
-  dep.addEventListener('input',e=>{S.departure=D.parse(e.target.value);renderOutput();});
-  const amt=document.getElementById('in-amt');
-  if(S.totalValue!==null)amt.value=money(S.totalValue);
-  bindMoney(amt,v=>{S.totalValue=v;},renderOutput);
-  const def=document.getElementById('in-def');
-  if(def){ def.checked=!!S.wantsDeferral;
-    def.addEventListener('change',e=>{S.wantsDeferral=e.target.checked;renderOutput();}); }
-  document.querySelectorAll('[data-grp]').forEach(g=>{
-    const key=g.dataset.grp;
-    g.querySelectorAll('button').forEach(b=>{
-      b.setAttribute('aria-pressed',String(S[key]===(b.dataset.v==='true')));
-      b.addEventListener('click',()=>{ S[key]=(b.dataset.v==='true'); render(); });
-    });
-  });
-  document.getElementById('periods').innerHTML='';
-  const keep=S.periods.slice(); S.periods=[];
-  keep.forEach(p=>addPeriodRow(p));
-  if(S.alwaysInJapan===false&&S.periods.length===0)addPeriodRow();
-  document.getElementById('btn-addrow').addEventListener('click',()=>addPeriodRow());
-}
-
-function renderOutput(){
-  // 段階的開示：前の答えが出るまで次を出さない
-  const show=(id,c)=>document.getElementById(id).hidden=!c;
-  show('st2',S.isResident===true);
-  show('fld-dep',S.willDepart===true);
-  show('st3',S.willDepart===true&&D.isValid(S.departure));
-  show('fld-per',S.alwaysInJapan===false);
-  const res=D.isValid(S.departure)?residencyCheck(S.departure,S.alwaysInJapan,S.periods):null;
-  show('st4',S.alwaysInJapan!==null&&res&&res.ok&&res.met);
-  show('fld-def',S.hasTaxAgent===true);
-  const val=(S.hasTaxAgent!==null&&D.isValid(S.departure))?valuationDate(S.departure,S.hasTaxAgent):null;
-  show('st5',!!(val&&val.ok&&res&&res.ok&&res.met));
-
-  if(val&&val.ok){
-    document.getElementById('basis-line').innerHTML=nb(esc(
-      val.basis==='atDeparture'?T('s5basisAt'):fill('s5basis3m',{date:dateStr(val.date)})));
-  }
-  const r=evaluate(S,TODAY);
-  const box=document.getElementById('result');
-  box.classList.toggle('pending',r.verdict==='incomplete');
-  box.innerHTML=resultHTML(r);
-  bindResult();
-}
-
-function resultHTML(r){
-  let h=`<p class="verdict">${nb(esc(T('v_'+r.verdict)))}</p>`;
-
-  if(r.verdict==='incomplete'){
-    const need=missingList(S);
-    h+=`<p class="vsub">${esc(fill('incompleteCount',{n:need.length}))}</p>`;
-    h+=`<ul class="needs">${need.map((k,i)=>
-      `<li class="${i===0?'next':''}">${nb(esc(T('need_'+k)))}${i===0
-        ?`<span class="nexttag">${esc(T('needNext'))}</span>`:''}</li>`).join('')}</ul>`;
-    return h;
-  }
-
-  h+=`<p class="vsub">${nb(esc(T('v_'+r.verdict+'Sub')))}</p>`;
-  h+=printSummary();   // 画面には出さない。紙にしたとき入力が消えていると相談に使えない。
-
-  for(const rs of (r.reasons||[])){
-    let msg;
-    if(rs==='noResponseDay'){
-      const t=D.shiftClamped(S.departure,{months:-3});
-      msg=fill('r_noResponseDay',{dep:dateStr(S.departure),ym:`${t.y}.${String(t.m).padStart(2,'0')}`});
-    }else msg=T('r_'+rs);
-    h+=`<p class="vsub" style="margin-top:.7rem;color:var(--ink-2)">${nb(esc(msg))}</p>`;
-  }
-
-  // 期間を入力した人には、国内在住期間と5年線からの距離を必ず見せる（1億円と同じ扱い）
-  const rc=r.residency;
-  if(rc&&rc.ok&&rc.basis==='computed'){
-    h+=`<p class="distance">${esc(fill('res_span',{span:spanText(rc.span)}))}</p>`;
-    h+=`<p class="distance">${esc(rc.dist>0?fill('res_over',{diff:distText(rc.dist)})
-      :rc.dist<0?fill('res_under',{diff:distText(-rc.dist)}):T('res_exact'))}</p>`;
-    if(rc.near)h+=`<p class="vsub" style="margin-top:.4rem">${nb(esc(T('res_near')))}</p>`;
-    h+=`<div class="legalterm">${nb(esc(T('res_basis')))}</div>`;
-  }
-
-  if(r.threshold&&r.threshold.ok){
-    const d=r.threshold.distance;
-    h+=`<p class="distance">${esc(d>=0?fill('distanceOver',{n:money(d)}):fill('distanceUnder',{n:money(-d)}))}</p>`;
-    if(Math.abs(d)<=RULES.threshold.amount*0.1)
-      h+=`<p class="vsub" style="margin-top:.3rem">${nb(esc(T('nearThreshold')))}</p>`;
-  }
-
-  if(r.verdict==='subject'){
-    h+=`<div class="tl"><p class="tlhead">${esc(fill('tlHead',{date:dateStr(S.departure)}))}</p>`;
-    h+=`<ul class="tlist">${timelineHTML(r.timeline)}</ul>`;
-    if(r.timeline.some(i=>i.precision==='approx'))
-      h+=`<p class="sidenote" style="margin-top:.8rem">${nb(esc(T('tlApproxNote')))}</p>`;
-    h+=`</div>`;
-    h+=`<div class="legalterm">${nb(esc(T('termHead')))}<br>${nb(esc(T('term_subject')))}</div>`;
-    h+=`<div class="legalterm"><strong>${nb(esc(T('statuteHead')))}</strong><br>${nb(esc(T('statuteBody')))}</div>`;
-    h+=`<div class="legalterm"><strong>${nb(esc(T('fxCreditHead')))}</strong><br>${nb(esc(T('fxCreditBody')))}</div>`;
-    h+=`<details><summary><span>${esc(T('estSum'))}</span><span class="whofor">${esc(T('estWho'))}</span></summary>
-      <div class="dbody"><div class="field">
-      <label class="q" style="font-size:.87rem" for="in-gain">${esc(T('estQ'))}</label>
-      <input type="text" inputmode="numeric" id="in-gain"${S.gain!==null?` value="${money(S.gain)}"`:''}>
-      <p class="sidenote">${esc(T('estHelp'))}</p></div>
-      <p class="distance" id="est-out">${S.gain!==null&&S.gain>0?esc(fill('estResult',{n:money(S.gain*RULES.taxRate.total)})):''}</p>
-      <p class="sidenote" style="margin-top:.5rem">${nb(esc(T('estNote')))}</p></div></details>`;
-  }
-
-  if(r.verdict!=='incomplete'){
-    h+=`<details><summary><span>${esc(T('inheritSum'))}</span><span class="whofor">${esc(T('inheritWho'))}</span></summary>
-      <div class="dbody"><p class="sidenote">${nb(esc(T('inheritBody')))}</p></div></details>`;
-    h+=`<details><summary><span>${esc(T('giftSum'))}</span><span class="whofor">${esc(T('giftWho'))}</span></summary>
-      <div class="dbody"><p class="sidenote">${nb(esc(T('giftBody')))}</p></div></details>`;
-  }
-  return h;
-}
-
-// 印刷専用の入力サマリー。税理士に渡す紙に「何を入れたか」が無いと役に立たない。
-function printSummary(){
-  const row=(k,v)=>(v===null||v===undefined||v==='')?'':
-    `<tr><th>${nb(esc(T(k)))}</th><td>${nb(esc(v))}</td></tr>`;
-  const yn=b=>b?T('ps_yes'):T('ps_no');
-  const val=D.isValid(S.departure)&&S.hasTaxAgent!==null?valuationDate(S.departure,S.hasTaxAgent):null;
-  let rows='';
-  rows+=row('s2date',D.isValid(S.departure)?dateStr(S.departure):null);
-  rows+=row('ps_stay',S.alwaysInJapan===null?null:S.alwaysInJapan?T('s3yes')
-    :S.periods.filter(p=>p.from&&p.to).map(p=>`${dateStr(p.from)} - ${dateStr(p.to)}`).join('  /  '));
-  rows+=row('ps_agent',S.hasTaxAgent===null?null:yn(S.hasTaxAgent));
-  if(S.hasTaxAgent)rows+=row('ps_deferral',yn(S.wantsDeferral));
-  if(val&&val.ok)rows+=row('ps_basis',dateStr(val.date));
-  rows+=row('ps_total',S.totalValue===null?null:money(S.totalValue));
-  if(S.gain!==null)rows+=row('ps_gain',money(S.gain));
-  rows+=row('ps_on',dateStr(TODAY));
-  return rows?`<div class="printsum"><h3>${nb(esc(T('ps_head')))}</h3><table>${rows}</table></div>`:'';
-}
-
-function timelineHTML(items){
-  const rows=items.map(i=>({...i,sort:i.date?D.ms(i.date):0}));
-  rows.push({id:'__today',date:TODAY,sort:D.ms(TODAY),delta:0,today:true});
-  rows.sort((a,b)=>a.sort-b.sort);
-  return rows.map(i=>{
-    if(i.today) return `<li class="tli today"><span class="tdate">${esc(dateStr(TODAY))}</span>
-      <span class="tlabel">${esc(T('tl_today'))}</span></li>`;
-    const cls=['tli']; if(i.severity==='critical')cls.push('crit'); if(i.delta<0)cls.push('past');
-    const delta=deltaText(i.date,i.delta);
-    return `<li class="${cls.join(' ')}">
-      <span class="tdate">${esc(dateStr(i.date))}<span class="tdelta">${esc(delta)}</span></span>
-      <span class="tlabel">${nb(esc(T('tl_'+i.id)))}${i.recurring?`<span class="approx">${esc(T('tlRecur'))}</span>`:''}${i.precision==='approx'?`<span class="approx">${esc(T('tlApprox'))}</span>`:''}</span></li>`;
-  }).join('');
-}
-
-function bindResult(){
-  const g=document.getElementById('in-gain'); if(!g)return;
-  bindMoney(g,v=>{S.gain=v;},()=>{        // 影響範囲だけ差し替える＝カーソルが飛ばない
-    const o=document.getElementById('est-out');
-    if(o)o.textContent=(S.gain!==null&&S.gain>0)?fill('estResult',{n:money(S.gain*RULES.taxRate.total)}):'';
-    const ps=document.querySelector('.printsum');   // 紙にも含み益を載せる
-    if(ps)ps.outerHTML=printSummary();
-  });
-}
-
-/* ---- 出典・免責・フッタ ---- */
-function renderStatic(){
-  const li=(s,pre)=>`<li><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(T(pre+s.key))}</a></li>`;
-  document.getElementById('t-src-h').textContent=T('srcHead');
-  document.getElementById('src-primary').innerHTML=RULES.sources.primary.map(s=>li(s,'s_')).join('');
-  document.getElementById('t-ref-h').textContent=T('refHead');
-  document.getElementById('src-ref').innerHTML=RULES.sources.reference.map(s=>li(s,'s_')).join('');
-  document.getElementById('t-asof').textContent=fill('asof',
-    {law:RULES.meta.lawAsOf,faq:RULES.meta.faqRevision,rev:RULES.meta.reviewedOn});
-  document.getElementById('t-disc-h').textContent=T('discHead');
-  document.getElementById('t-disc').innerHTML=nb(esc(T('disc')));
-  document.getElementById('t-sharenote').innerHTML=nb(esc(T('shareNote')));
-  document.getElementById('t-copy').textContent=T('copyright');   // 直書きしない
-  document.getElementById('btn-print').textContent=T('btnPrint');
-  document.getElementById('btn-share').textContent=T('btnShare');
-  document.getElementById('btn-reset').textContent=T('btnReset');
-}
-
-/* ---- URL共有：#s= にBase64。後方互換のため v を持たせる ---- */
-function encodeState(){
-  const p={v:1,l:LANG,r:S.isResident,w:S.willDepart,d:S.departure?D.iso(S.departure):null,
-    a:S.alwaysInJapan,t:S.hasTaxAgent,f:S.wantsDeferral,m:S.totalValue,g:S.gain,
-    p:S.periods.map(x=>[x.from?D.iso(x.from):null,x.to?D.iso(x.to):null])};
-  return btoa(unescape(encodeURIComponent(JSON.stringify(p)))).replace(/=+$/,'');
-}
-function decodeState(h){
+/* Updating the address bar is a convenience, not a requirement.
+   Sandboxed contexts (srcdoc iframes, file://) throw SecurityError here,
+   so never let a failed URL update break the app. */
+function safeReplaceState(url){
   try{
-    const j=JSON.parse(decodeURIComponent(escape(atob(h))));
-    if(!j||typeof j!=='object')return false;
-    if(j.l==='ja'||j.l==='en')LANG=j.l;
-    S=blank();
-    // 未知のバージョンでも、読める鍵だけ拾う（後方互換）
-    if(typeof j.r==='boolean')S.isResident=j.r;
-    if(typeof j.w==='boolean')S.willDepart=j.w;
-    if(typeof j.a==='boolean')S.alwaysInJapan=j.a;
-    if(typeof j.t==='boolean')S.hasTaxAgent=j.t;
-    if(typeof j.f==='boolean')S.wantsDeferral=j.f;
-    if(typeof j.m==='number')S.totalValue=j.m;
-    if(typeof j.g==='number')S.gain=j.g;
-    S.departure=D.parse(j.d);
-    if(Array.isArray(j.p))S.periods=j.p.filter(Array.isArray)
-      .map(x=>({from:D.parse(x[0]),to:D.parse(x[1])}));
+    history.replaceState(null, "", url);
     return true;
-  }catch(e){ return false; }
+  }catch(e){
+    return false;   // sandboxed or cross-origin; ignore
+  }
 }
 
-/* ---- 起動 ---- */
-document.querySelectorAll('.langsw button').forEach(b=>
-  b.addEventListener('click',()=>{LANG=b.dataset.lang;render();renderStatic();}));
-document.getElementById('btn-print').addEventListener('click',()=>window.print());
-document.getElementById('btn-reset').addEventListener('click',()=>{
-  S=blank(); setHash('');
-  render(); renderStatic();
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const yen  = n => "¥" + Math.round(n).toLocaleString("ja-JP");
+const loc  = n => n.toLocaleString("ja-JP",{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct  = n => (n*100).toLocaleString("ja-JP",{maximumFractionDigits:1}) + "%";
+const num  = el => { const v = parseFloat(el.value); return isNaN(v) ? NaN : v; };
+const roundDown3 = x => Math.floor(x/1000)*1000;
+
+/* Japanese income-tax quick table (速算表) */
+function incomeTax(x){
+  if(x<=0) return 0;
+  if(x<=1950000)  return x*0.05;
+  if(x<=3300000)  return x*0.10 - 97500;
+  if(x<=6950000)  return x*0.20 - 427500;
+  if(x<=9000000)  return x*0.23 - 636000;
+  if(x<=18000000) return x*0.33 - 1536000;
+  if(x<=40000000) return x*0.40 - 2796000;
+  return x*0.45 - 4796000;
+}
+/* employment-income deduction (給与所得控除) */
+function salaryDeduction(S){
+  if(S<=1625000) return 550000;
+  if(S<=1800000) return S*0.4 - 100000;
+  if(S<=3600000) return S*0.3 + 80000;
+  if(S<=6600000) return S*0.2 + 440000;
+  if(S<=8500000) return S*0.1 + 1100000;
+  return 1950000;
+}
+
+/* ---------- populate country select ---------- */
+const sel = $("country");
+COUNTRIES.forEach((c,i)=>{
+  const o=document.createElement("option");
+  o.value=i; o.textContent=c.name; sel.appendChild(o);
 });
-// サンドボックス内のiframeやblob:では history も location.origin も当てにできない
-function setHash(h){
-  try{ history.replaceState(null,'',h||location.pathname+location.search); return true; }
-  catch(err){ try{ location.hash=h; }catch(e2){} return false; }
+sel.value="7"; // カンボジア
+
+/* ---------- language engine ---------- */
+function applyLang(lang){
+  LANG = (lang === "en") ? "en" : "ja";
+  document.documentElement.lang = LANG;
+  document.title = t("docTitle");
+
+  document.querySelectorAll("[data-i18n]").forEach(el=>{
+    const v = t(el.getAttribute("data-i18n"));
+    if(typeof v === "string") el.textContent = v;
+  });
+  document.querySelectorAll("[data-i18n-html]").forEach(el=>{
+    const v = t(el.getAttribute("data-i18n-html"));
+    if(typeof v === "string") el.innerHTML = v;
+  });
+
+  /* country option labels */
+  Array.from(sel.options).forEach((o,i)=>{
+    const c = COUNTRIES[i];
+    if(c) o.textContent = (LANG === "en" && c.nameEn) ? c.nameEn : c.name;
+  });
+
+  /* scope notice: only meaningful for English readers */
+  const sc = $("scopeNote");
+  const scText = t("scope");
+  if(LANG === "en" && scText){
+    sc.innerHTML = scText;
+    sc.classList.remove("hidden");
+  }else{
+    sc.classList.add("hidden");
+  }
+
+  /* share button label (may be mid-"copied" state) */
+  if(!$("btnShare").classList.contains("done")) $("shareLabel").textContent = t("act_share");
+
+  document.querySelectorAll(".lang-btn").forEach(b=>{
+    b.setAttribute("aria-pressed", String(b.dataset.lang === LANG));
+  });
+
+  compute();   // re-render all dynamic strings
 }
-function shareURL(){
-  const base=(location.origin&&location.origin!=='null')
-    ? location.origin+location.pathname+location.search
-    : String(location.href).split('#')[0];
-  return base+'#s='+encodeState();
+
+document.querySelectorAll(".lang-btn").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    applyLang(b.dataset.lang);
+    const p = new URLSearchParams(location.search);
+    p.set("lang", LANG);
+    safeReplaceState(location.pathname + "?" + p.toString());
+  });
+});
+
+function initialLang(){
+  const p = new URLSearchParams(location.search).get("lang");
+  if(p === "en" || p === "ja") return p;
+  return (navigator.language || "").toLowerCase().startsWith("ja") ? "ja" : "en";
 }
-document.getElementById('btn-share').addEventListener('click',async e=>{
-  const label=e.target.textContent, url=shareURL();
-  setHash('#s='+encodeState());
+
+/* ---------- main compute ---------- */
+function compute(){
+  const c = COUNTRIES[+sel.value];
+  const isManual = (c.rate===null);
+  $("manualRateField").classList.toggle("hidden", !isManual);
+  const appliedRate = isManual ? (num($("manualRate"))/100) : c.rate;
+
+  // country info card
+  $("c_rate").textContent = isNaN(appliedRate) ? "—" : pct(appliedRate);
+  const tb=$("c_treaty");
+  tb.textContent = c.treaty === "有" ? t("treatyYes") : c.treaty === "無" ? t("treatyNo") : t("treatyNa");
+  tb.className = "badge " + (c.treaty==="有"?"yes":c.treaty==="無"?"no":"na");
+  $("c_note").textContent = (LANG === "en" ? (c.noteEn || "") : (c.note || ""));
+  const srcEl = $("c_src");
+  if(c.src){
+    const srcName = (c.treaty === "有") ? t("srcTreaty") : t("srcDomestic");
+    srcEl.innerHTML = "";
+    const a = document.createElement("a");
+    a.href = c.src;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = srcName + " ↗";
+    srcEl.appendChild(a);
+  }else{
+    srcEl.textContent = "";
+  }
+
+  const deposit=num($("deposit")), rate=num($("rate")), years=num($("years")), fx=num($("fx"));
+  const side = isNaN(num($("side"))) ? 0 : num($("side"));
+  const salaryYN = document.querySelector('input[name="salaryYN"]:checked').value;
+  const payMode = document.querySelector('input[name="payMode"]:checked').value;
+  const isCompound = (payMode === "compound");
+
+  $("payHint").textContent = isCompound ? t("payHintCompound") : t("payHintSimple");
+
+  const coreOK = [deposit,rate,years,fx].every(v=>!isNaN(v)) && !isNaN(appliedRate);
+
+  if(!coreOK){
+    ["r_pretaxLocal","r_taxLocal","r_afterLocal","r_pretaxYen","r_taxYen","r_afterYen","r_finalBal"]
+      .forEach(id=>$(id).textContent="—");
+    $("prompt").classList.remove("hidden");
+    $("verdict").classList.add("hidden");
+    $("stage2").classList.add("hidden");
+    $("stage3").classList.add("hidden");
+    $("yearly").classList.add("hidden");
+    return;
+  }
+  $("prompt").classList.add("hidden");
+
+  /* --- Stage 1: interest & local withholding --- */
+  /* Tax timing differs by payout method:
+     - simple   : all interest is taxed in the maturity year (one lump)
+     - compound : interest is received & taxed each year -> assess per year */
+  let pretaxLocal, taxLocal, afterLocal, finalBalance = null;
+  let taxYearPretaxLocal, taxYearTaxLocal;   // amount assessed in a single tax year
+  let schedule = [];
+
+  if(isCompound){
+    let bal = deposit;
+    const whole = Math.floor(years);
+    for(let i=1; i<=whole; i++){
+      const gross = bal*(rate/100);
+      const wht   = gross*appliedRate;
+      const net   = gross-wht;
+      schedule.push({year:i, open:bal, gross, wht, close:bal+net});
+      bal += net;
+    }
+    const frac = years-whole;
+    if(frac > 0){
+      const gross = bal*(rate/100)*frac;
+      const wht   = gross*appliedRate;
+      const net   = gross-wht;
+      schedule.push({year:whole+1, open:bal, gross, wht, close:bal+net, partial:true});
+      bal += net;
+    }
+    pretaxLocal = schedule.reduce((s,r)=>s+r.gross, 0);
+    taxLocal    = schedule.reduce((s,r)=>s+r.wht, 0);
+    afterLocal  = pretaxLocal-taxLocal;
+    finalBalance = bal;
+    /* Largest single-year interest drives the filing test & Stage 3.
+       Using the peak year is the conservative (safe-side) choice. */
+    const peak = schedule.length
+      ? schedule.reduce((a,b)=> b.gross > a.gross ? b : a)
+      : {gross:0, wht:0};
+    taxYearPretaxLocal = peak.gross;
+    taxYearTaxLocal    = peak.wht;
+  }else{
+    pretaxLocal = deposit*(rate/100)*years;
+    taxLocal    = pretaxLocal*appliedRate;
+    afterLocal  = pretaxLocal-taxLocal;
+    taxYearPretaxLocal = pretaxLocal;   // taxed in one lump at maturity
+    taxYearTaxLocal    = taxLocal;
+  }
+
+  const pretaxYen = pretaxLocal*fx;
+  const taxYen    = taxLocal*fx;
+  const afterYen  = afterLocal*fx;
+  /* per-tax-year figures, in yen */
+  const taxYearInterestYen = taxYearPretaxLocal*fx;
+  const taxYearLocalTaxYen = taxYearTaxLocal*fx;
+
+  $("ledgerLabel").textContent = isCompound ? t("ledgerSum")(years) : t("ledger");
+  $("k_pretaxLocal").textContent = isCompound ? t("l_pretaxLocalSum") : t("l_pretaxLocal");
+  $("k_pretaxYen").textContent   = isCompound ? t("l_pretaxYenSum") : t("l_pretaxYen");
+
+  $("r_pretaxLocal").textContent = loc(pretaxLocal);
+  $("r_taxLocal").textContent    = loc(taxLocal);
+  $("r_afterLocal").textContent  = loc(afterLocal);
+  $("r_pretaxYen").textContent   = yen(pretaxYen);
+  $("r_taxYen").textContent      = yen(taxYen);
+  $("r_afterYen").textContent    = yen(afterYen);
+
+  if(isCompound && finalBalance != null){
+    $("row_finalBal").classList.remove("hidden");
+    $("r_finalBal").textContent = loc(finalBalance);
+  }else{
+    $("row_finalBal").classList.add("hidden");
+  }
+  renderSchedule(isCompound ? schedule : null);
+
+  /* --- optional: FX gain on conversion to JPY (雑所得) --- */
+  /* Principal kept in foreign currency generates no FX gain (所令167の6②).
+     Gain arises only when converted to JPY (or used for another asset). */
+  const fxOn = $("fxEnable").checked;
+  $("fxBody").classList.toggle("hidden", !fxOn);
+  $("fxRoleNote").textContent = fxOn ? t("fxRole") : "";
+
+  let fxGainYen = 0;
+  if(fxOn){
+    const fxOut = num($("fxOut"));
+    const convMode = document.querySelector('input[name="convMode"]:checked').value;
+    if(!isNaN(fxOut)){
+      /* amount converted, in local currency */
+      const principalPart = (convMode === "all") ? deposit : 0;
+      const interestPart  = afterLocal;   // after local withholding
+      const convAmt = principalPart + interestPart;
+      const diff = fxOut - fx;
+      fxGainYen = convAmt * diff;
+
+      $("r_convAmt").textContent = loc(convAmt);
+      $("r_fxDiff").textContent  = (diff >= 0 ? "+" : "−") + Math.abs(diff).toLocaleString("ja-JP",{maximumFractionDigits:4}) + (LANG === "en" ? "" : "円");
+      $("k_fxGain").textContent  = fxGainYen >= 0 ? t("fx_gain") : t("fx_loss");
+      const gEl = $("r_fxGain");
+      gEl.textContent = (fxGainYen >= 0 ? "" : "−") + yen(Math.abs(fxGainYen));
+      gEl.className = "v " + (fxGainYen >= 0 ? "gain" : "loss");
+
+      $("fxNote").innerHTML = fxGainYen >= 0
+        ? t("fxNoteGain") + (convMode === "interest" ? t("fxNoteGainPrincipal") : "")
+        : t("fxNoteLoss");
+      $("fxres").classList.remove("hidden");
+    }else{
+      $("fxres").classList.add("hidden");
+    }
+  }else{
+    $("fxres").classList.add("hidden");
+  }
+  /* Losses can't offset salary; treat as 0 for the filing test (safe side). */
+  const fxIncomeYen = Math.max(0, fxGainYen);
+
+  /* --- verdict (assessed on a single tax year) --- */
+  const noFile = (salaryYN==="はい") && ((side + taxYearInterestYen + fxIncomeYen)<=FILING_LINE);
+  const v=$("verdict"), stamp=$("stamp");
+  v.classList.remove("hidden","go","file");
+  if(noFile){
+    v.classList.add("go");
+    stamp.textContent=t("stampGo");
+    $("verdictTitle").textContent=t("vGoTitle");
+    $("verdictReason").textContent = t("vGoReason")(isCompound, fxIncomeYen > 0);
+    $("stage2").classList.remove("hidden"); $("stage2").classList.add("fade");
+    $("stage3").classList.add("hidden");
+  }else{
+    v.classList.add("file");
+    stamp.textContent=t("stampFile");
+    $("verdictTitle").textContent=t("vFileTitle");
+    const hasFx = fxIncomeYen > 0;
+    let reason;
+    if(salaryYN!=="はい") reason=t("vSalary");
+    else if(isCompound) reason=t("vCompound")(hasFx);
+    else reason=t("vSimple")(hasFx);
+    $("verdictReason").textContent=reason;
+    $("stage2").classList.add("hidden");
+    $("stage3").classList.remove("hidden"); $("stage3").classList.add("fade");
+    computeStage3(taxYearInterestYen, taxYearLocalTaxYen, isCompound, years, fxIncomeYen);
+  }
+}
+
+/* ---------- yearly schedule table ---------- */
+function renderSchedule(schedule){
+  const box = $("yearly"), body = $("ytabBody");
+  if(!schedule || !schedule.length){
+    box.classList.add("hidden");
+    body.innerHTML = "";
+    return;
+  }
+  body.innerHTML = "";
+  schedule.forEach(r=>{
+    const tr = document.createElement("tr");
+    const cells = [
+      (r.year + t("yearSuffix") + (r.partial ? "*" : "")),
+      loc(r.open), loc(r.gross), loc(r.wht), loc(r.close)
+    ];
+    cells.forEach((txt,i)=>{
+      const td = document.createElement("td");
+      td.textContent = txt;
+      if(i===3) td.className = "tax";
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+  box.classList.remove("hidden");
+}
+
+/* ---------- Stage 3 ---------- */
+function computeStage3(interestYen, localTaxYen, isCompound, years, fxIncomeYen){
+  fxIncomeYen = fxIncomeYen || 0;
+  $("s3_interest").textContent = yen(interestYen);
+  $("s3_localtax").textContent = yen(localTaxYen);
+  $("s3_basisNote").textContent = isCompound ? t("s3_basisCompound")(years) : t("s3_basisSimple");
+  $("s3_fxRow").classList.toggle("hidden", fxIncomeYen <= 0);
+  $("s3_fxGain").textContent = yen(fxIncomeYen);
+
+  const salary = isNaN(num($("salary"))) ? 0 : num($("salary"));
+  const otherIn = isNaN(num($("other")))  ? 0 : num($("other"));
+  const mode   = document.querySelector('input[name="dedMode"]:checked').value;
+  $("manualDedField").classList.toggle("hidden", mode!=="manual");
+  const manualDed = isNaN(num($("manualDed"))) ? 0 : num($("manualDed"));
+
+  /* FX gain is domestic-source 雑所得: it raises total income (and thus the
+     marginal rate on interest) but is NOT foreign-source income, so it does
+     not enlarge the foreign tax credit limit. */
+  const other = otherIn + fxIncomeYen;
+
+  const kc  = salaryDeduction(salary);
+  const ky  = Math.max(0, salary-kc);
+  const ded = (mode==="auto") ? (salary*0.15 + 480000) : manualDed;
+
+  const tiA = Math.max(0, ky+other);
+  const tiB = Math.max(0, ky+other+interestYen);
+  const ktA = Math.max(0, roundDown3(tiA-ded));
+  const ktB = Math.max(0, roundDown3(tiB-ded));
+
+  const txA = incomeTax(ktA), txB = incomeTax(ktB);
+  const intTax   = Math.max(0, txB-txA);
+  const intFukko = Math.round(intTax*0.021);
+  const intJz    = Math.round(interestYen*0.10);
+  const jpBefore = intTax + intFukko + intJz;
+
+  /* 調整国外所得金額：国外所得は所得総額の90%が上限（所得税法施行令222②）。
+     給与が主収入なら通常この上限には当たらないが、法令に忠実に実装する。 */
+  const adjForeign = Math.min(interestYen, tiB*0.9);
+  const limIt  = (tiB===0) ? 0 : txB*adjForeign/tiB;
+  const limAll = limIt*(1 + 0.021 + 0.30);      // 所得税限度額 ×1.321
+  const credit = Math.min(localTaxYen, limAll);
+  const carry  = Math.max(0, localTaxYen-limAll);
+
+  const s1=localTaxYen, s2=jpBefore, s4=Math.max(0, jpBefore-credit);
+  const s5=localTaxYen+s4, s6=interestYen-s5;
+  const erate = interestYen===0 ? 0 : s5/interestYen;
+
+  $("r_s1").textContent=yen(s1);
+  $("r_s2").textContent=yen(s2);
+  $("r_s3").textContent="−"+yen(credit);
+  $("r_s4").textContent=yen(s4);
+  $("r_s5").textContent=yen(s5);
+  $("r_s6").textContent=yen(s6);
+  $("r_erate").textContent=pct(erate);
+  $("r_carry").textContent=yen(carry);
+  $("carryNote").style.display = carry>0 ? "block" : "none";
+}
+
+/* ---------- URL state (share / bookmark) ---------- */
+/* Short keys keep the URL readable. Nothing is sent to any server. */
+const URL_FIELDS = [
+  ["c",  () => sel.value,                 v => { if(COUNTRIES[+v]) sel.value = v; }],
+  ["mr", () => $("manualRate").value,     v => $("manualRate").value = v],
+  ["d",  () => $("deposit").value,        v => $("deposit").value = v],
+  ["r",  () => $("rate").value,           v => $("rate").value = v],
+  ["y",  () => $("years").value,          v => $("years").value = v],
+  ["pm", () => document.querySelector('input[name="payMode"]:checked').value === "compound" ? "c" : "s",
+         v => { $(v === "c" ? "payCompound" : "paySimple").checked = true; }],
+  ["fx", () => $("fx").value,             v => $("fx").value = v],
+  ["fe", () => $("fxEnable").checked ? "1" : "0", v => $("fxEnable").checked = (v === "1")],
+  ["fo", () => $("fxOut").value,          v => $("fxOut").value = v],
+  ["cm", () => document.querySelector('input[name="convMode"]:checked').value === "interest" ? "i" : "a",
+         v => { $(v === "i" ? "convInterest" : "convAll").checked = true; }],
+  ["sy", () => document.querySelector('input[name="salaryYN"]:checked').value === "はい" ? "1" : "0",
+         v => { $(v === "1" ? "salYes" : "salNo").checked = true; }],
+  ["sd", () => $("side").value,           v => $("side").value = v],
+  ["sa", () => $("salary").value,         v => $("salary").value = v],
+  ["dm", () => document.querySelector('input[name="dedMode"]:checked').value === "auto" ? "a" : "m",
+         v => { $(v === "m" ? "dedManual" : "dedAuto").checked = true; }],
+  ["md", () => $("manualDed").value,      v => $("manualDed").value = v],
+  ["o",  () => $("other").value,          v => $("other").value = v],
+];
+
+function buildShareUrl(){
+  const p = new URLSearchParams();
+  URL_FIELDS.forEach(([k, get]) => {
+    const val = get();
+    if(val !== "" && val != null) p.set(k, val);
+  });
+  if(LANG !== "ja") p.set("lang", LANG);
+  /* location.origin is the string "null" in sandboxed contexts (srcdoc, file://) */
+  const base = (location.origin && location.origin !== "null")
+    ? location.origin + location.pathname
+    : location.href.split("?")[0];
+  return base + "?" + p.toString();
+}
+
+function restoreFromUrl(){
+  const p = new URLSearchParams(location.search);
+  if(![...p.keys()].length) return;
+  URL_FIELDS.forEach(([k, , set]) => {
+    if(p.has(k)){
+      try { set(p.get(k)); } catch(e){ /* ignore malformed param */ }
+    }
+  });
+}
+
+/* ---------- share button ---------- */
+let shareTimer = null;
+$("btnShare").addEventListener("click", async () => {
+  const url = buildShareUrl();
+  const btn = $("btnShare"), label = $("shareLabel");
+  const reset = () => { btn.classList.remove("done"); label.textContent = t("act_share"); };
+
   try{
-    if(navigator.clipboard&&navigator.clipboard.writeText){
-      await navigator.clipboard.writeText(url); e.target.textContent=T('shareCopied');
-    }else{ e.target.textContent=T('shareFailed'); }
-  }catch(err){ e.target.textContent=T('shareFailed'); }
-  setTimeout(()=>{e.target.textContent=label;},2200);
+    if(!navigator.clipboard) throw new Error("clipboard unavailable");
+    await navigator.clipboard.writeText(url);
+  }catch(e){
+    // Fallback for browsers/contexts without clipboard permission
+    const ta = document.createElement("textarea");
+    ta.value = url;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch(_){ prompt(t("copyPrompt"), url); }
+    document.body.removeChild(ta);
+  }
+  // Reflect the shared state in the address bar without reloading
+  safeReplaceState(url);
+  btn.classList.add("done");
+  label.textContent = t("act_shared");
+  clearTimeout(shareTimer);
+  shareTimer = setTimeout(reset, 2200);
 });
-if(String(location.hash||'').startsWith('#s='))decodeState(location.hash.slice(3));
-else if(navigator.language&&!navigator.language.toLowerCase().startsWith('ja'))LANG='en';
-render(); renderStatic();
 
+/* ---------- print button ---------- */
+$("btnPrint").addEventListener("click", () => {
+  $("p_date").textContent = new Date().toLocaleDateString(LANG === "en" ? "en-GB" : "ja-JP", {
+    year:"numeric", month:"long", day:"numeric"
+  });
+  window.print();
+});
+
+/* ---------- wire up ---------- */
+document.querySelectorAll("input, select").forEach(el=>{
+  el.addEventListener("input", compute);
+  el.addEventListener("change", compute);
+});
+
+restoreFromUrl();
+applyLang(initialLang());   // applyLang() calls compute()
 </script>
 </body>
 </html>
