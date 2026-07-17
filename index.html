@@ -339,6 +339,17 @@
   }
 
   /* ---------- sources ---------- */
+  .premise{
+    margin:14px 0 0;padding:12px 15px;font-size:12px;line-height:1.7;
+    color:var(--muted);background:#FBF9F2;border:1px solid var(--line-strong);
+    border-radius:4px;
+  }
+  .premise strong{color:var(--ink);font-weight:600;}
+  .cwarn{
+    margin:10px 0 0;padding:9px 11px;font-size:11px;line-height:1.6;
+    color:var(--ink);background:rgba(174,58,46,.06);
+    border-left:2px solid var(--seal);border-radius:0 3px 3px 0;
+  }
   .csrc{margin:8px 0 0;font-size:11px;line-height:1.5;}
   .csrc a{color:var(--indigo);text-decoration:none;border-bottom:1px solid rgba(44,74,124,.3);}
   .csrc a:hover{border-bottom-color:var(--indigo);}
@@ -397,8 +408,9 @@
   /* ---------- yearly breakdown ---------- */
   .yearly{
     margin-top:16px;background:var(--card);border:1px solid var(--line);
-    border-radius:6px;padding:8px 18px 16px;
+    border-radius:6px;padding:8px 18px 16px;overflow-x:auto;
   }
+  .ytab{white-space:nowrap;}
   .yearly .card-label{border-bottom:1px solid var(--line);padding-top:12px;margin-bottom:10px;}
   .ytab{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11.5px;}
   .ytab th{
@@ -551,13 +563,13 @@
           <select id="country"></select>
         </div>
 
-        <div class="field hidden" id="manualRateField">
-          <label for="manualRate" data-i18n="f_manualRate">源泉税率（手入力）</label>
+        <div class="field" id="manualRateField">
+          <label for="manualRate"><span class="req">＊</span><span data-i18n="f_manualRate">源泉税率</span></label>
           <div class="with-unit">
-            <input type="number" id="manualRate" value="10" step="0.1" min="0" max="100">
+            <input type="number" id="manualRate" value="14" step="0.1" min="0" max="100">
             <span class="unit">％</span>
           </div>
-          <p class="hint" data-i18n="h_manualRate">リストにない国の非居住者向け源泉税率を入力してください。</p>
+          <p class="hint" data-i18n="h_manualRate">国を選ぶと参考値が入ります。通帳や年間取引報告書で実際に引かれた率が分かる場合は、上書きしてください。</p>
         </div>
 
         <div class="field">
@@ -629,9 +641,9 @@
                 <input type="radio" name="convMode" id="convAll" value="all" checked>
                 <label for="convAll" data-i18n="conv_all">元本＋利息</label>
                 <input type="radio" name="convMode" id="convInterest" value="interest">
-                <label for="convInterest" data-i18n="conv_interest">利息のみ</label>
+                <label for="convInterest" data-i18n="conv_interest">利息のみ（元本は外貨のまま）</label>
               </div>
-              <p class="hint" data-i18n="h_convMode">元本を外貨のまま保有し続ける場合、その元本部分に為替差益は生じません。</p>
+              <p class="hint" data-i18n="h_convMode">為替差損益が生じるのは「元本」を円転したときだけです。利息は受取時のレートで円換算されるため、受け取ってすぐ円転する限り差損益は生じません。</p>
             </div>
           </div>
         </div>
@@ -672,7 +684,7 @@
 
         <div class="fxres hidden" id="fxres">
           <p class="card-label" data-i18n="fx_title">円転による為替損益（雑所得）</p>
-          <div class="lrow"><span class="k" data-i18n="fx_amt">円転する外貨額（現地通貨）</span><span class="leader"></span><span class="v" id="r_convAmt">—</span></div>
+          <div class="lrow"><span class="k" data-i18n="fx_amt">為替差損益の対象額（元本・現地通貨）</span><span class="leader"></span><span class="v" id="r_convAmt">—</span></div>
           <div class="lrow"><span class="k" id="k_fxDiff" data-i18n="fx_diff">為替レートの差（円）</span><span class="leader"></span><span class="v" id="r_fxDiff">—</span></div>
           <div class="lrow em"><span class="k" id="k_fxGain">為替差益</span><span class="leader"></span><span class="v" id="r_fxGain">—</span></div>
           <p class="fxnote" id="fxNote"></p>
@@ -691,7 +703,7 @@
 
         <div class="cinfo" id="cinfo">
           <div class="cinfo-row">
-            <span class="k" style="color:var(--muted);font-size:13px;" data-i18n="c_rateLabel">適用される源泉税率</span>
+            <span class="k" style="color:var(--muted);font-size:13px;" data-i18n="c_rateLabel">適用中の源泉税率</span>
             <span class="rate-big" id="c_rate">—</span>
           </div>
           <div class="cinfo-row">
@@ -699,6 +711,7 @@
             <span class="badge na" id="c_treaty">—</span>
           </div>
           <p class="cnote" id="c_note"></p>
+          <p class="cwarn" data-i18n="c_capWarn">条約の限度税率は「上限」です。実際に引かれる税率は現地の国内法によりこれより低いことがあります（香港・マレーシア・英国・ドイツ・米国などは銀行預金の利子に源泉税を課しません）。通帳や年間取引報告書で実際の源泉税額をご確認ください。</p>
           <p class="csrc no-print" id="c_src"></p>
         </div>
       </div>
@@ -713,6 +726,7 @@
         <p id="verdictReason"></p>
       </div>
     </div>
+    <p class="premise hidden" id="premiseNote" data-i18n-html="premise"></p>
   </section>
 
   <!-- ============ STAGE 2 (申告不要) ============ -->
@@ -918,24 +932,24 @@ const COUNTRIES = [
   {name:"カナダ", nameEn:"Canada", noteEn:"", rate:0.10, treaty:"有", note:"", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
   {name:"韓国", nameEn:"South Korea", noteEn:"", rate:0.10, treaty:"有", note:"", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
   {name:"カンボジア", nameEn:"Cambodia", noteEn:"No tax treaty with Japan; domestic-law rate for non-residents.", rate:0.14, treaty:"無", note:"日本と租税条約なし・現地国内法の非居住者源泉税率。", src:"https://www.jetro.go.jp/world/"},
-  {name:"シンガポール", nameEn:"Singapore", noteEn:"", rate:0.10, treaty:"有", note:"", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"シンガポール", nameEn:"Singapore", noteEn:"Domestic rate on interest to non-residents is generally 15%; the treaty caps it at 10%. Verify the actual rate.", rate:0.10, treaty:"有", note:"非居住者への利子は国内法で原則15%、日星条約により10%が上限。実際の率は要確認。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
   {name:"ジョージア", nameEn:"Georgia", noteEn:"No tax treaty with Japan. Domestic-law rate on interest is 5%.", rate:0.05, treaty:"無", note:"日本と租税条約なし。非居住者への利子は国内法で5%。口座開設が比較的容易。", src:"https://www.jetro.go.jp/world/"},
-  {name:"タイ", nameEn:"Thailand", noteEn:"Treaty rate ranges 10–25% depending on deposit type. Verify before relying on this.", rate:0.10, treaty:"有", note:"条約上10〜25%。預金の種類で異なり要確認（高めに出る場合あり）。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"タイ", nameEn:"Thailand", noteEn:"Treaty rate ranges 10–25% depending on deposit type. Verify before relying on this.", range:true, rate:0.10, treaty:"有", note:"条約上10〜25%。預金の種類で異なり要確認（高めに出る場合あり）。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
   {name:"台湾", nameEn:"Taiwan", noteEn:"Based on the Japan–Taiwan private tax arrangement.", rate:0.10, treaty:"有", note:"日台民間租税取決めに基づく。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
   {name:"中国", nameEn:"China", noteEn:"OECD-standard treaty cap.", rate:0.10, treaty:"有", note:"OECD標準の限度税率。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
   {name:"ドイツ", nameEn:"Germany", noteEn:"Interest is generally exempt under the treaty.", rate:0.00, treaty:"有", note:"条約上、利子は原則免税。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
-  {name:"トルコ", nameEn:"Türkiye", noteEn:"Treaty rate ranges 10–15% depending on deposit type.", rate:0.10, treaty:"有", note:"条約上10〜15%。預金の種類で異なり要確認。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"トルコ", nameEn:"Türkiye", noteEn:"Treaty rate ranges 10–15% depending on deposit type.", range:true, rate:0.10, treaty:"有", note:"条約上10〜15%。預金の種類で異なり要確認。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
   {name:"バングラデシュ", nameEn:"Bangladesh", noteEn:"Treaty cap 10%; 15% without a local Taxpayer Identification Number (TIN).", rate:0.10, treaty:"有", note:"条約上10%。ただし現地の納税者識別番号(TIN)がない場合15%。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
-  {name:"フィリピン", nameEn:"Philippines", noteEn:"15% in some cases.", rate:0.10, treaty:"有", note:"一部15%。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"フィリピン", nameEn:"Philippines", noteEn:"15% in some cases.", range:true, rate:0.10, treaty:"有", note:"一部15%。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
   {name:"ブラジル", nameEn:"Brazil", noteEn:"Treaty cap 12.5%. A tax-sparing credit (20% on interest) may apply — consult a professional.", rate:0.125, treaty:"有", note:"条約上12.5%。日伯条約に「みなし外国税額控除」(利子20%)の特例あり・要専門家確認。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
-  {name:"フランス", nameEn:"France", noteEn:"Some interest is exempt.", rate:0.10, treaty:"有", note:"一部免税あり。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"フランス", nameEn:"France", noteEn:"Some interest is exempt.", range:true, rate:0.10, treaty:"有", note:"一部免税あり。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
   {name:"ブルネイ", nameEn:"Brunei", noteEn:"", rate:0.10, treaty:"有", note:"", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
   {name:"米国", nameEn:"United States", noteEn:"Interest is generally exempt under the treaty (10% in some cases).", rate:0.00, treaty:"有", note:"条約上、利子は原則免税（例外10%）。米国は預金利子の非居住者免税もあり。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
   {name:"ベトナム", nameEn:"Vietnam", noteEn:"", rate:0.10, treaty:"有", note:"", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
-  {name:"香港", nameEn:"Hong Kong", noteEn:"", rate:0.10, treaty:"有", note:"", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
-  {name:"マレーシア", nameEn:"Malaysia", noteEn:"", rate:0.10, treaty:"有", note:"", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"香港", nameEn:"Hong Kong", noteEn:"Hong Kong does not levy withholding tax on interest (actual rate 0%). The 10% treaty cap applies only if it ever does.", rate:0.00, treaty:"有", note:"香港は利子に源泉税を課していません（実際の源泉税は0%）。条約の10%は将来課税された場合の上限。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"マレーシア", nameEn:"Malaysia", noteEn:"Interest paid by Malaysian banks to a non-resident individual is exempt (actual rate 0%).", rate:0.00, treaty:"有", note:"マレーシアの銀行等が非居住者個人に支払う利子は免税（実際の源泉税は0%）。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
   {name:"南アフリカ", nameEn:"South Africa", noteEn:"", rate:0.10, treaty:"有", note:"", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
-  {name:"メキシコ", nameEn:"Mexico", noteEn:"Treaty provides 10% and 15% categories.", rate:0.10, treaty:"有", note:"条約上10%と15%の区分あり。ペソ建てで人気。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
+  {name:"メキシコ", nameEn:"Mexico", noteEn:"Treaty provides 10% and 15% categories.", range:true, rate:0.10, treaty:"有", note:"条約上10%と15%の区分あり。ペソ建てで人気。", src:"https://www.mof.go.jp/tax_policy/summary/international/tax_convention/tax_convetion_list_jp.html"},
   {name:"モンゴル", nameEn:"Mongolia", noteEn:"No tax treaty with Japan. Domestic-law rate on interest is a high 20%; part may be uncreditable.", rate:0.20, treaty:"無", note:"日本と租税条約なし。非居住者への利子は国内法で20%と高率。控除しきれない場合あり。", src:"https://www.jetro.go.jp/world/"},
   {name:"その他（手入力）", nameEn:"Other (manual entry)", noteEn:"Not in the list. Enter the withholding tax rate manually.", rate:null, treaty:"—", note:"リストにない国。源泉税率を手入力してください。", src:""},
 ];
@@ -957,8 +971,10 @@ const I18N = {
     s1_sub:"預金の情報を入力すると、利息・源泉税・判定が自動で更新されます。",
     inputs:"入力項目",
     f_country:"預入国（預金を保有している国・地域）",
-    f_manualRate:"源泉税率（手入力）",
-    h_manualRate:"リストにない国の非居住者向け源泉税率を入力してください。",
+    f_manualRate:"源泉税率",
+    h_manualRate:"国を選ぶと参考値が入ります。通帳や年間取引報告書で実際に引かれた率が分かる場合は、上書きしてください。",
+    rangeSuffix:"（幅あり）",
+    c_capWarn:"条約の限度税率は「上限」です。実際に引かれる税率は現地の国内法によりこれより低いことがあります（香港・マレーシア・英国・ドイツ・米国などは銀行預金の利子に源泉税を課しません）。通帳や年間取引報告書で実際の源泉税額をご確認ください。",
     f_deposit:"預金額（現地通貨）",
     f_rate:"年利", f_years:"預入期間",
     h_years:"日本人に多いのは3年・5年定期です。1年未満は 0.5 のように入力できます。",
@@ -971,8 +987,8 @@ const I18N = {
     fx_toggle:"円に戻したときの損益も見る", fx_toggle_sub:"任意。円転しない場合は不要です。",
     f_fxOut:"円転時の為替レート（現地通貨1単位＝◯円）",
     h_fxOut:"円に戻すとき（満期・解約時）の想定レート。上の「想定為替レート」を預入時のレートとして計算します。",
-    f_convMode:"円に戻す範囲", conv_all:"元本＋利息", conv_interest:"利息のみ",
-    h_convMode:"元本を外貨のまま保有し続ける場合、その元本部分に為替差益は生じません。",
+    f_convMode:"円に戻す範囲", conv_all:"元本＋利息", conv_interest:"利息のみ（元本は外貨のまま）",
+    h_convMode:"為替差損益が生じるのは「元本」を円転したときだけです。利息は受取時のレートで円換算されるため、受け取ってすぐ円転する限り差損益は生じません。",
     f_salaryYN:"会社員として給与収入は2,000万円以下ですか？", yes:"はい", no:"いいえ",
     f_side:"副業などの別収入（年間の所得金額）",
     h_side:"収入から必要経費を引いた所得。なければ 0 のまま。利息と合算して20万円ラインを判定します。",
@@ -985,15 +1001,17 @@ const I18N = {
     y_title:"年ごとの内訳（複利）", y_year:"年", y_open:"年初残高", y_int:"利息", y_wht:"源泉税", y_close:"年末残高",
     y_note:"毎年利息を受け取り、税引後の額を元本に再投資した場合の推移です。金額は現地通貨。<br>「*」は1年未満の端数期間を示します。",
     yearSuffix:"年目",
-    fx_title:"円転による為替損益（雑所得）", fx_amt:"円転する外貨額（現地通貨）",
+    fx_title:"円転による為替損益（雑所得）", fx_amt:"為替差損益の対象額（元本・現地通貨）",
     fx_diff:"為替レートの差（円）", fx_gain:"為替差益", fx_loss:"為替差損",
     fxNoteGain:'為替差益は<strong>雑所得</strong>として総合課税の対象です。20万円ラインの判定にも、利息と合算して含めます。',
-    fxNoteGainPrincipal:'<br>元本を外貨のまま保有する場合、その元本部分に為替差益は生じません。',
-    fxNoteLoss:'為替差損は他の黒字の<strong>雑所得</strong>から控除できますが、給与所得などとは損益通算できません。<br>本アプリでは、差損は0として安全側に判定します。',
-    c_rateLabel:"適用される源泉税率", c_treatyLabel:"日本との租税条約",
+    fxNoteLoss:'為替差損は他の黒字の<strong>雑所得</strong>から控除できますが、給与所得などとは損益通算できません。本アプリでは、差損は0として安全側に判定します。',
+    fxNoteNoPrincipal:'元本を外貨のまま保有するため、<strong>為替差損益は生じません</strong>（所得税法施行令167条の6第2項）。利息は受取時のレートで円換算されるため、受け取ってすぐ円転する限り差損益は生じません。',
+    fxNoteBasis:'<br>対象は預入時のレートで取得した<strong>元本のみ</strong>です。利息は受取時のレートで円換算されるため、為替差損益は生じません。なお複利で再投資した利息の為替変動は、本ツールでは考慮していません（概算のため）。',
+    c_rateLabel:"適用中の源泉税率", c_treatyLabel:"日本との租税条約",
     treatyYes:"有", treatyNo:"無", treatyNa:"—",
     srcTreaty:"財務省「租税条約等の一覧」で条約を確認", srcDomestic:"ジェトロ「国・地域別に見る」で現地税制を確認",
     prompt:"＊印の必須項目をすべて入力すると、判定が表示されます。",
+    premise:"この判定は<strong>給与所得者の申告不要制度</strong>にもとづく目安です。「勤務先で年末調整が済んでいる」「給与が1か所のみ」「他に確定申告をすべき事由がない」ことが前提です。医療費控除・住宅ローン控除の初年度・ふるさと納税のワンストップ特例を使わない場合など、<strong>他の理由で確定申告をする方は、金額にかかわらず利息を申告する必要があります</strong>。",
     stampGo:"申告\n不要", stampFile:"要\n申告",
     vGoTitle:"所得税の確定申告は原則不要と考えられます",
     vFileTitle:"確定申告が必要な可能性があります",
@@ -1008,7 +1026,7 @@ const I18N = {
     s2_li3:"<strong>給与収入が2,000万円を超える</strong>とき。金額にかかわらず確定申告が必要です。",
     s2_li4:"<strong>住民税は別扱い</strong>です。所得税の20万円ルールは住民税には適用されません。所得税が不要でも住民税の申告が必要な場合があります。",
     s3_title:"日本の所得税・外国税額控除の概算",
-    s3_sub:"利子は日本で総合課税（累進）になります。追加で数点を入力してください。",
+    s3_sub:"国外で受け取る預金利子は日本で源泉徴収されないため、申告する場合は総合課税（累進）で計算します。追加で数点を入力してください。",
     s3_assume:"前提：社会保険料＝給与収入×15％・基礎控除48万円で所得控除を自動見積り／住民税は一律10％・復興特別所得税2.1％／控除限度額の国外所得は所得総額の90％を上限（調整国外所得金額）／条約の限度税率を超えて現地徴収された分は日本で控除できない場合があります。あくまで概算です。",
     s3_inputs:"追加の入力項目",
     f_salary:"給与収入（額面・年間）", h_salary:"源泉徴収票の「支払金額」。",
@@ -1024,7 +1042,7 @@ const I18N = {
     s3_r1:"① 現地の源泉税（支払済）", s3_r2:"② 日本の利子課税（控除前）", s3_r3:"③ 外国税額控除（相殺）",
     s3_r4:"④ 日本での実質追加負担", s3_r5:"⑤ この預金の税 合計", s3_r6:"⑥ 税引後の最終手取り",
     s3_erate:"利子に対する実効税率",
-    carryNote:'◆ ヒント：今年の枠で引ききれなかった現地源泉税（繰越額 <span id="r_carry" style="font-family:var(--mono)">—</span>）は、翌年以降の確定申告で最長3年間、日本の税額からマイナスできる可能性があります（毎年の申告が必要）。',
+    carryNote:'◆ ヒント：今年の枠で引ききれなかった現地源泉税（繰越額 <span id="r_carry" style="font-family:var(--mono)">—</span>）は、翌年以降の確定申告で最長3年間、日本の税額からマイナスできる可能性があります。ただし自動的に繰り越されるわけではなく、「繰越控除限度額」「繰越控除余裕額」を毎年の申告書で管理し、明細書を添付し続ける必要があります。',
     src_title:"税率データについて", src_updated:"最終更新：", src_date:"2026年7月",
     src_lede:"本アプリの源泉税率は、日本と各国の租税条約における<strong>利子の限度税率</strong>（条約がある国）、または<strong>現地国内法の非居住者源泉税率</strong>（条約がない国）に基づいています。日本は77本・81か国地域と租税条約を締結しており、条約がある場合は原則として条約の限度税率が国内法に優先します。",
     src_t1:"条約の有無", src_t2:"条約の仕組み", src_t3:"外国税額控除", src_t4:"各国税制",
@@ -1040,7 +1058,7 @@ const I18N = {
     src_w3:"<strong>条約は署名・発効により変動します。</strong>本アプリの税率は上記の更新時点のものです。実際の申告にあたっては、必ず最新の一次情報と専門家の確認をお願いします。",
     act_title:"結果を保存・共有する", act_sub:"税理士への相談や、あとで見返すためにお使いください。",
     act_print:"印刷 / PDFで保存", act_share:"この条件のURLをコピー", act_shared:"URLをコピーしました",
-    act_note:"「印刷 / PDFで保存」では、印刷画面の送信先で「PDFに保存」を選ぶとPDFになります。URLには入力した条件のみが含まれ、サーバーには何も送信されません。",
+    act_note:"「印刷 / PDFで保存」では、印刷画面の送信先で「PDFに保存」を選ぶとPDFになります。URLには入力した条件のみが含まれ、サーバーには何も送信されません。ただし共有URLには預金額・給与収入などの金額が含まれます。第三者への共有や、共有アプリの履歴にご注意ください。",
     copyPrompt:"下記URLをコピーしてください",
     ph_title:"海外預金 税務シミュレーション 概算結果", ph_date:"作成日：",
     ph_note:"本書は概算であり、税務書類ではありません",
@@ -1066,8 +1084,10 @@ const I18N = {
     s1_sub:"Enter your deposit details. Interest, withholding tax, and the verdict update automatically.",
     inputs:"Inputs",
     f_country:"Country where the deposit is held",
-    f_manualRate:"Withholding tax rate (manual)",
-    h_manualRate:"Enter the non-resident withholding rate for a country not on the list.",
+    f_manualRate:"Withholding tax rate",
+    h_manualRate:"Selecting a country fills in a reference rate. If you know the rate actually withheld (from your passbook or annual statement), override it.",
+    rangeSuffix:" (range)",
+    c_capWarn:"A treaty rate is a CEILING, not the rate actually charged. Local law may withhold less — Hong Kong, Malaysia, the UK, Germany and the US levy no withholding tax on bank deposit interest. Check your passbook or annual statement for the amount actually withheld.",
     f_deposit:"Deposit amount (local currency)",
     f_rate:"Annual interest rate", f_years:"Term",
     h_years:"3-year and 5-year fixed deposits are the most common in Japan. Use 0.5 for six months.",
@@ -1080,8 +1100,8 @@ const I18N = {
     fx_toggle:"Also show gain/loss on converting back to yen", fx_toggle_sub:"Optional. Skip if you keep the foreign currency.",
     f_fxOut:"FX rate at conversion (1 unit of local currency = ¥)",
     h_fxOut:"The assumed rate when you convert back to yen (at maturity or withdrawal). The rate above is treated as the rate at deposit.",
-    f_convMode:"What you convert", conv_all:"Principal + interest", conv_interest:"Interest only",
-    h_convMode:"If you keep the principal in foreign currency, no FX gain arises on that principal.",
+    f_convMode:"What you convert", conv_all:"Principal + interest", conv_interest:"Interest only (keep principal)",
+    h_convMode:"An FX gain or loss arises only on the PRINCIPAL when converted. Interest is translated at the rate on its receipt date, so converting it straight away produces no FX gain.",
     f_salaryYN:"Is your employment income ¥20,000,000 or less?", yes:"Yes", no:"No",
     f_side:"Other income, e.g. side work (annual, net)",
     h_side:"Income after deducting expenses. Leave at 0 if none. It is added to interest to test the ¥200,000 threshold.",
@@ -1094,15 +1114,17 @@ const I18N = {
     y_title:"Year-by-year breakdown (compound)", y_year:"Year", y_open:"Opening", y_int:"Interest", y_wht:"Withheld", y_close:"Closing",
     y_note:"Interest is received each year and reinvested after withholding tax. Amounts in local currency.<br>“*” marks a partial year.",
     yearSuffix:"",
-    fx_title:"FX gain or loss on conversion (miscellaneous income)", fx_amt:"Amount converted (local currency)",
+    fx_title:"FX gain or loss on conversion (miscellaneous income)", fx_amt:"Amount exposed to FX (principal, local currency)",
     fx_diff:"FX rate difference (¥)", fx_gain:"FX gain", fx_loss:"FX loss",
     fxNoteGain:'An FX gain is <strong>miscellaneous income</strong> and is aggregated with other income. It also counts toward the ¥200,000 filing threshold, together with interest.',
-    fxNoteGainPrincipal:'<br>If you keep the principal in foreign currency, no FX gain arises on that principal.',
     fxNoteLoss:'An FX loss can offset other positive <strong>miscellaneous income</strong>, but not employment income. This tool treats a loss as zero, which is the conservative choice.',
-    c_rateLabel:"Withholding rate applied", c_treatyLabel:"Tax treaty with Japan",
+    fxNoteNoPrincipal:'Because the principal stays in foreign currency, <strong>no FX gain or loss arises</strong> (Order for Enforcement of the Income Tax Act, Art. 167-6(2)). Interest is translated at the rate on its receipt date, so converting it straight away produces no FX gain either.',
+    fxNoteBasis:'<br>Only the <strong>principal</strong>, acquired at the deposit-date rate, is exposed. Interest is translated at its receipt date, so it produces no FX gain. FX movement on interest reinvested under compounding is not modelled here.',
+    c_rateLabel:"Rate currently applied", c_treatyLabel:"Tax treaty with Japan",
     treatyYes:"Yes", treatyNo:"No", treatyNa:"—",
     srcTreaty:"Check the treaty — MOF list of Japan's tax treaties", srcDomestic:"Check local tax law — JETRO country guides",
     prompt:"Fill in every field marked ＊ to see the verdict.",
+    premise:"This test reflects the <strong>filing exemption for salaried employees</strong>. It assumes your employer has completed your year-end adjustment, you have one source of employment income, and you have no other reason to file. <strong>If you file a return for any other reason</strong> — a medical expense deduction, the first year of a housing loan deduction, and so on — <strong>you must report the interest regardless of the amount</strong>.",
     stampGo:"NO\nFILING", stampFile:"FILING\nNEEDED",
     vGoTitle:"An income tax return is generally not required",
     vFileTitle:"A tax return is likely required",
@@ -1117,7 +1139,7 @@ const I18N = {
     s2_li3:"<strong>Employment income exceeds ¥20,000,000.</strong> A return is then required regardless of the amounts.",
     s2_li4:"<strong>Resident tax is separate.</strong> The ¥200,000 rule applies to income tax only. A resident tax filing may still be required even when no income tax return is.",
     s3_title:"Japanese income tax and the foreign tax credit",
-    s3_sub:"Interest is aggregated and taxed at progressive rates in Japan. A few more inputs are needed.",
+    s3_sub:"Interest paid outside Japan is not withheld at source by Japan, so if you file, it is aggregated and taxed at progressive rates. A few more inputs are needed.",
     s3_assume:"Assumptions: deductions estimated automatically as social insurance (15% of salary) plus the ¥480,000 basic deduction; resident tax at a flat 10%; special reconstruction income tax at 2.1%; foreign-source income in the credit limit is capped at 90% of total income (adjusted foreign source income). Foreign tax withheld above a treaty cap may not be creditable in Japan. These are estimates only.",
     s3_inputs:"Additional inputs",
     f_salary:"Employment income (gross, annual)", h_salary:"The gross amount on your withholding slip.",
@@ -1133,7 +1155,7 @@ const I18N = {
     s3_r1:"1. Foreign withholding tax (already paid)", s3_r2:"2. Japanese tax on interest (before credit)", s3_r3:"3. Foreign tax credit (offset)",
     s3_r4:"4. Net additional Japanese tax", s3_r5:"5. Total tax on this deposit", s3_r6:"6. Final take-home after tax",
     s3_erate:"Effective tax rate on interest",
-    carryNote:'◆ Note: foreign tax you cannot use this year (carry-forward <span id="r_carry" style="font-family:var(--mono)">—</span>) may be credited against Japanese tax for up to three subsequent years. A return must be filed each year.',
+    carryNote:'◆ Note: foreign tax you cannot use this year (carry-forward <span id="r_carry" style="font-family:var(--mono)">—</span>) may be credited against Japanese tax for up to three subsequent years. This is not automatic: the carried-forward limit and unused allowance must be tracked on a return every year, with the supporting schedule attached.',
     src_title:"About the tax rate data", src_updated:"Last updated: ", src_date:"July 2026",
     src_lede:"Withholding rates come from the <strong>treaty cap on interest</strong> where a tax treaty with Japan exists, and from <strong>domestic-law non-resident rates</strong> where it does not. Japan has 77 tax treaties covering 81 countries and jurisdictions; where a treaty applies, its cap generally overrides domestic law.",
     src_t1:"Treaty status", src_t2:"How treaties work", src_t3:"Foreign tax credit", src_t4:"Local tax law",
@@ -1149,7 +1171,7 @@ const I18N = {
     src_w3:"<strong>Treaties change as they are signed and enter into force.</strong> These rates are current as of the date above. Always verify against primary sources and a professional before filing.",
     act_title:"Save or share the result", act_sub:"Useful for a meeting with a tax accountant, or to revisit later.",
     act_print:"Print / Save as PDF", act_share:"Copy a link to these inputs", act_shared:"Link copied",
-    act_note:"To create a PDF, choose “Save as PDF” as the destination in the print dialog. The link contains only the values you entered; nothing is sent to any server.",
+    act_note:"To create a PDF, choose “Save as PDF” as the destination in the print dialog. The link contains only the values you entered; nothing is sent to any server. Note that it does include amounts such as your deposit and salary — take care when sharing it, and remember it may stay in chat history.",
     copyPrompt:"Copy the URL below",
     ph_title:"Overseas Deposit Tax — Estimated Result", ph_date:"Date: ",
     ph_note:"An estimate. Not a tax document.",
@@ -1218,6 +1240,16 @@ COUNTRIES.forEach((c,i)=>{
 });
 sel.value="7"; // カンボジア
 
+/* Selecting a country seeds the rate input with that country's reference rate.
+   It stays editable afterwards so the user can enter what was actually withheld. */
+function seedRate(){
+  const c = COUNTRIES[+sel.value];
+  if(c && c.rate !== null && c.rate !== undefined){
+    $("manualRate").value = +(c.rate*100).toFixed(2);
+  }
+}
+sel.addEventListener("change", ()=>{ seedRate(); compute(); });
+
 /* ---------- language engine ---------- */
 function applyLang(lang){
   LANG = (lang === "en") ? "en" : "ja";
@@ -1277,12 +1309,14 @@ function initialLang(){
 /* ---------- main compute ---------- */
 function compute(){
   const c = COUNTRIES[+sel.value];
-  const isManual = (c.rate===null);
-  $("manualRateField").classList.toggle("hidden", !isManual);
-  const appliedRate = isManual ? (num($("manualRate"))/100) : c.rate;
+  /* The rate input is always editable. The country master only supplies a
+     starting value (a treaty cap, which is a CEILING — the actual local rate
+     may be lower). Users can override with what was actually withheld. */
+  const appliedRate = num($("manualRate"))/100;
 
   // country info card
-  $("c_rate").textContent = isNaN(appliedRate) ? "—" : pct(appliedRate);
+  $("c_rate").textContent = isNaN(appliedRate) ? "—"
+    : pct(appliedRate) + (c && c.range ? t("rangeSuffix") : "");
   const tb=$("c_treaty");
   tb.textContent = c.treaty === "有" ? t("treatyYes") : c.treaty === "無" ? t("treatyNo") : t("treatyNa");
   tb.className = "badge " + (c.treaty==="有"?"yes":c.treaty==="無"?"no":"na");
@@ -1316,6 +1350,7 @@ function compute(){
       .forEach(id=>$(id).textContent="—");
     $("prompt").classList.remove("hidden");
     $("verdict").classList.add("hidden");
+    $("premiseNote").classList.add("hidden");
     $("stage2").classList.add("hidden");
     $("stage3").classList.add("hidden");
     $("yearly").classList.add("hidden");
@@ -1406,10 +1441,11 @@ function compute(){
     const fxOut = num($("fxOut"));
     const convMode = document.querySelector('input[name="convMode"]:checked').value;
     if(!isNaN(fxOut)){
-      /* amount converted, in local currency */
-      const principalPart = (convMode === "all") ? deposit : 0;
-      const interestPart  = afterLocal;   // after local withholding
-      const convAmt = principalPart + interestPart;
+      /* FX gain arises only on the PRINCIPAL, acquired at `fx` and converted
+         at `fxOut`. Interest is translated at the rate on its receipt date and
+         taxed as 利子所得, so converting it straight away produces no FX gain —
+         charging it (fxOut - fx) as well would double-count. */
+      const convAmt = (convMode === "all") ? deposit : 0;
       const diff = fxOut - fx;
       fxGainYen = convAmt * diff;
 
@@ -1420,9 +1456,9 @@ function compute(){
       gEl.textContent = (fxGainYen >= 0 ? "" : "−") + yen(Math.abs(fxGainYen));
       gEl.className = "v " + (fxGainYen >= 0 ? "gain" : "loss");
 
-      $("fxNote").innerHTML = fxGainYen >= 0
-        ? t("fxNoteGain") + (convMode === "interest" ? t("fxNoteGainPrincipal") : "")
-        : t("fxNoteLoss");
+      $("fxNote").innerHTML = (convMode === "interest")
+        ? t("fxNoteNoPrincipal")
+        : (fxGainYen >= 0 ? t("fxNoteGain") : t("fxNoteLoss")) + t("fxNoteBasis");
       $("fxres").classList.remove("hidden");
     }else{
       $("fxres").classList.add("hidden");
@@ -1437,6 +1473,7 @@ function compute(){
   const noFile = (salaryYN==="はい") && ((side + taxYearInterestYen + fxIncomeYen)<=FILING_LINE);
   const v=$("verdict"), stamp=$("stamp");
   v.classList.remove("hidden","go","file");
+  $("premiseNote").classList.remove("hidden");
   if(noFile){
     v.classList.add("go");
     stamp.textContent=t("stampGo");
