@@ -220,7 +220,7 @@ if(im){
   eq("legacy notice (ja)", I18N.ja.legacyDedNote, "『所得控除（手入力）』の入力の意味が変わりました。基礎控除はアプリが足すので、基礎控除を除いた額を入れ直してください。");
   check("legacy notice (en) names the field", /‘Deductions \(manual\)’/.test(I18N.en.legacyDedNote) && /without it/.test(I18N.en.legacyDedNote));
   // static HTML text must match the ja dictionary for the keys touched in this change
-  for(const k of ["s3_assume","h_fx","src_d5","f_manualDed","h_manualDed","legacyDedNote","f_taxYear","h_taxYear"]){
+  for(const k of ["s3_assume","h_fx","src_d5","f_manualDed","h_manualDed","legacyDedNote","f_taxYear","h_taxYear","h_other"]){
     const re = new RegExp('data-i18n(?:-html)?="' + k + '">([\\s\\S]*?)</(?:p|div|span|label)>');
     const mm = html.match(re);
     check("static HTML matches dictionary: " + k, !!mm && mm[1] === I18N.ja[k],
