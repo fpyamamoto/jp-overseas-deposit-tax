@@ -91,7 +91,7 @@
   .step-sub{color:var(--muted);font-size:13px;margin:2px 0 0;}
 
   .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:22px;align-items:start;}
-  @media(max-width:760px){.grid{grid-template-columns:1fr;}}
+  @media(max-width:760px){.grid{grid-template-columns:minmax(0,1fr);}}
 
   .card{
     background:var(--card);border:1px solid var(--line);
@@ -166,6 +166,8 @@
   .lrow .k{font-size:13px;color:var(--muted);white-space:nowrap;}
   .lrow .leader{flex:1;border-bottom:1px dotted #D9D0BA;transform:translateY(-3px);min-width:12px;}
   .lrow .v{font-family:var(--mono);font-size:15px;text-align:right;white-space:nowrap;}
+  /* narrow screens: let the row label wrap so long labels cannot widen the page */
+  @media(max-width:520px){.lrow .k{white-space:normal;min-width:0;}}
   .lrow.em .k{color:var(--ink);font-weight:600;}
   .lrow.em .v{font-size:17px;font-weight:500;}
   .lrow.total{border-top:2px solid var(--ink);margin-top:4px;padding-top:12px;border-bottom:none;}
@@ -1030,6 +1032,9 @@ const I18N = {
     stampGo:"申告\n不要", stampFile:"要\n申告",
     vGoTitle:"所得税の確定申告は原則不要と考えられます",
     vFileTitle:"確定申告が必要な可能性があります",
+    stampZero:"所得税\n0円",
+    vZeroTitle:"所得税の確定申告は不要の見込みです（所得税0円）",
+    vZeroReason:"申告不要の条件（給与2,000万円以下・20万円以下）には当たりませんが、第3段階の入力で計算すると、利息を含めた所得が所得控除以下で、所得税は0円の見込みです。所得税の額が0円なら、所得税の確定申告の義務はありません（所得税法120条1項）。住民税の申告が必要な場合があります。給与収入などを入れ直すと、判定も変わります。",
     vGoReason:(cmp,fx)=>`給与2,000万円以下・${cmp?"1年あたりの利息":"利息"}${fx?"・為替差益":""}と別収入の合計が20万円以下、の条件を満たしています（住民税は別途ご確認を）。`,
     vSalary:"給与収入が2,000万円を超えるため、金額にかかわらず申告が必要です。",
     vCompound:fx=>`1年あたりの利息（円換算）${fx?"・為替差益":""}と別収入の合計が20万円を超えるため、毎年の申告が必要です。`,
@@ -1148,6 +1153,9 @@ const I18N = {
     stampGo:"NO\nFILING", stampFile:"FILING\nNEEDED",
     vGoTitle:"An income tax return is generally not required",
     vFileTitle:"A tax return is likely required",
+    stampZero:"TAX\n¥0",
+    vZeroTitle:"No income tax return is expected to be required (income tax ¥0)",
+    vZeroReason:"The ¥200,000 exemption does not apply, but with the inputs in step 3 your income including the interest does not exceed your deductions, so income tax is expected to be ¥0. When income tax is ¥0, there is no obligation to file an income tax return (Income Tax Act, Art. 120(1)). A resident tax filing may still be required. Changing the salary or other inputs may change this result.",
     vGoReason:(cmp,fx)=>`Employment income is ¥20m or less, and ${cmp?"annual interest":"interest"}${fx?", FX gain,":""} plus other income totals ¥200,000 or less. (Resident tax is assessed separately.)`,
     vSalary:"Employment income exceeds ¥20,000,000, so a return is required regardless of the amounts.",
     vCompound:fx=>`Annual interest${fx?", FX gain,":""} plus other income exceeds ¥200,000, so a return is required each year.`,
@@ -1358,8 +1366,20 @@ function stage3Calc(o){
   const s1=localTaxYen, s2=jpBefore, s4=Math.max(0, jpBefore-credit);
   const s5=localTaxYen+s4, s6=interestYen-s5;
   const erate = interestYen===0 ? 0 : s5/interestYen;
-  return {ky, basicA, basicB, tiA, tiB, ktA, ktB, intTax, intFukko, intJz,
+  return {ky, basicA, basicB, tiA, tiB, ktA, ktB, txA, txB, intTax, intFukko, intJz,
           s1, s2, credit, s4, s5, s6, erate, carry};
+}
+/* Filing state.
+   "noFile":  the filing exemption for salaried employees applies
+              (Income Tax Act Art.121(1): salary <= ¥20M, other income <= ¥200,000).
+   "zeroTax": the exemption does not apply, but income tax on all income
+              (before the foreign tax credit) is ¥0, so Art.120(1) imposes no
+              duty to file (tax must exceed the dividend credit, here ¥0).
+   "file":    otherwise. incomeTaxTotal is null until step 3 is computed. */
+function filingState(o){
+  if(o.salaryUnder20M && o.otherIncomeTotal <= o.filingLine) return "noFile";
+  if(o.incomeTaxTotal !== null && o.incomeTaxTotal !== undefined && o.incomeTaxTotal <= 0) return "zeroTax";
+  return "file";
 }
 /* ===== TAX ENGINE END ===== */
 
@@ -1601,7 +1621,9 @@ function compute(){
   const fxIncomeYen = Math.max(0, fxGainYen);
 
   /* --- verdict (assessed on a single tax year) --- */
-  const noFile = (salaryYN==="はい") && ((side + taxYearInterestYen + fxIncomeYen)<=FILING_LINE);
+  const noFile = filingState({salaryUnder20M: salaryYN==="はい",
+    otherIncomeTotal: side + taxYearInterestYen + fxIncomeYen,
+    filingLine: FILING_LINE, incomeTaxTotal: null}) === "noFile";
   const v=$("verdict"), stamp=$("stamp");
   v.classList.remove("hidden","go","file");
   $("premiseNote").classList.remove("hidden");
@@ -1624,7 +1646,16 @@ function compute(){
     $("verdictReason").textContent=reason;
     $("stage2").classList.add("hidden");
     $("stage3").classList.remove("hidden"); $("stage3").classList.add("fade");
-    computeStage3(taxYearInterestYen, taxYearLocalTaxYen, isCompound, years, fxIncomeYen);
+    const r3 = computeStage3(taxYearInterestYen, taxYearLocalTaxYen, isCompound, years, fxIncomeYen);
+    /* Art.120(1): no duty to file an income tax return when income tax is ¥0 */
+    if(filingState({salaryUnder20M: salaryYN==="はい",
+         otherIncomeTotal: side + taxYearInterestYen + fxIncomeYen,
+         filingLine: FILING_LINE, incomeTaxTotal: r3.txB}) === "zeroTax"){
+      v.classList.remove("file"); v.classList.add("go");
+      stamp.textContent=t("stampZero");
+      $("verdictTitle").textContent=t("vZeroTitle");
+      $("verdictReason").textContent=t("vZeroReason");
+    }
   }
 }
 
@@ -1690,6 +1721,7 @@ function computeStage3(interestYen, localTaxYen, isCompound, years, fxIncomeYen)
   $("r_erate").textContent=pct(erate);
   $("r_carry").textContent=yen(carry);
   $("carryNote").style.display = carry>0 ? "block" : "none";
+  return r;
 }
 
 /* ---------- URL state (share / bookmark) ---------- */

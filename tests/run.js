@@ -23,7 +23,7 @@ function eq(name, got, want){ check(name, got === want, "got " + got + ", want "
 const m = html.match(/\/\* ===== TAX ENGINE START =====[\s\S]*?\/\* ===== TAX ENGINE END ===== \*\//);
 if(!m){ console.log("FAIL: TAX ENGINE block not found in index.html"); process.exit(1); }
 const E = vm.runInNewContext(m[0] +
-  "\n;({RULES, incomeTax, salaryDeduction, employmentIncome, basicDeduction, stage3Calc})", {});
+  "\n;({RULES, incomeTax, salaryDeduction, employmentIncome, basicDeduction, stage3Calc, filingState})", {});
 
 /* ---------- independent reference (from NTA No.1199 / No.1410 / No.2260) ---------- */
 const REF = {
@@ -227,6 +227,52 @@ if(im){
           mm ? "html: " + mm[1].slice(0, 60) : "not found");
   }
 }
+
+/* ---------- 9. filing state: no duty to file when income tax is ¥0 (Income Tax Act Art.120(1)) ---------- */
+{
+  const fs_ = (under, other, tax) => E.filingState({salaryUnder20M:under, otherIncomeTotal:other,
+                                                   filingLine:200000, incomeTaxTotal:tax});
+  eq("<= ¥200,000 and salary <= ¥20M -> noFile", fs_(true, 200000, null), "noFile");
+  eq("<= ¥200,000 even if tax is 0 -> noFile",    fs_(true, 200000, 0), "noFile");
+  eq("> ¥200,000, tax unknown -> file",           fs_(true, 200001, null), "file");
+  eq("> ¥200,000, tax 0 -> zeroTax",              fs_(true, 200001, 0), "zeroTax");
+  eq("> ¥200,000, tax 50 -> file",                fs_(true, 200001, 50), "file");
+  eq("salary > ¥20M, tax 0 -> zeroTax",           fs_(false, 0, 0), "zeroTax");
+  eq("salary > ¥20M, tax > 0 -> file",            fs_(false, 0, 1000000), "file");
+  // smallest positive tax: taxable income ¥1,000 -> ¥50
+  eq("incomeTax(1000) is 50", E.incomeTax(1000), 50);
+  // spec examples: B is ¥0 in both years, A/C/D/E are not
+  const st = (S, I, L, y) => {
+    const r = E.stage3Calc({year:y, interestYen:I, localTaxYen:L, salary:S, otherIncome:0, dedMode:"auto", manualDed:0});
+    return fs_(S <= 20000000, I, r.txB);
+  };
+  for(const y of ["2025","2026"]){
+    eq("spec B " + y + " -> zeroTax", st(1500000, 300000, 42000, y), "zeroTax");
+    eq("spec A " + y + " -> file",    st(6000000, 300000, 42000, y), "file");
+    eq("spec C " + y + " -> file",    st(6425000, 300000, 30000, y), "file");
+    eq("spec D " + y + " -> file",    st(2200000, 300000, 42000, y), "file");
+    eq("spec E " + y + " -> file",    st(25000000, 1000000, 100000, y), "file");
+  }
+  // txB is the income tax on all income including the interest
+  const rB = E.stage3Calc({year:"2026", interestYen:300000, localTaxYen:42000, salary:1500000,
+                           otherIncome:0, dedMode:"auto", manualDed:0});
+  eq("spec B 2026 txB", rB.txB, 0);
+  check("verdict switches to zeroTax after step 3", /=== "zeroTax"\)\{\s*v\.classList\.remove\("file"\); v\.classList\.add\("go"\);/.test(html));
+  check("computeStage3 returns its numbers", /\n  return r;\n\}/.test(html.replace(/\r\n/g, "\n")));
+  if(im){
+    const I18N = vm.runInNewContext("(" + im[1] + ")", {});
+    for(const k of ["stampZero","vZeroTitle","vZeroReason"]){
+      check("key " + k + " in ja and en", (k in I18N.ja) && (k in I18N.en));
+    }
+    check("ja reason cites Art.120(1)", /所得税法120条1項/.test(I18N.ja.vZeroReason));
+    check("ja reason mentions resident tax", /住民税の申告が必要な場合があります/.test(I18N.ja.vZeroReason));
+    check("en reason cites Art. 120(1)", /Art\. 120\(1\)/.test(I18N.en.vZeroReason));
+  }
+}
+
+/* ---------- 10. narrow screens: long row labels must not widen the page ---------- */
+check("one-column grid uses minmax(0,1fr)", /@media\(max-width:760px\)\{\.grid\{grid-template-columns:minmax\(0,1fr\);\}\}/.test(html));
+check("row labels wrap on narrow screens", /@media\(max-width:520px\)\{\.lrow \.k\{white-space:normal;min-width:0;\}\}/.test(html));
 
 console.log(passed + " passed, " + failed + " failed");
 process.exit(failed ? 1 : 0);
