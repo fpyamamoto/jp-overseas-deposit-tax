@@ -230,15 +230,29 @@ if(im){
 
 /* ---------- 9. filing state: no duty to file when income tax is ¥0 (Income Tax Act Art.120(1)) ---------- */
 {
-  const fs_ = (under, other, tax) => E.filingState({salaryUnder20M:under, otherIncomeTotal:other,
-                                                   filingLine:200000, incomeTaxTotal:tax});
+  const fs_ = (under, other, tax, entered) => E.filingState({salaryUnder20M:under, otherIncomeTotal:other,
+                                                   filingLine:200000, incomeTaxTotal:tax,
+                                                   salaryEntered: entered === undefined ? true : entered});
   eq("<= ¥200,000 and salary <= ¥20M -> noFile", fs_(true, 200000, null), "noFile");
   eq("<= ¥200,000 even if tax is 0 -> noFile",    fs_(true, 200000, 0), "noFile");
   eq("> ¥200,000, tax unknown -> file",           fs_(true, 200001, null), "file");
   eq("> ¥200,000, tax 0 -> zeroTax",              fs_(true, 200001, 0), "zeroTax");
   eq("> ¥200,000, tax 50 -> file",                fs_(true, 200001, 50), "file");
-  eq("salary > ¥20M, tax 0 -> zeroTax",           fs_(false, 0, 0), "zeroTax");
+  eq("salary > ¥20M ('no'), tax 0 -> file (no zeroTax)", fs_(false, 0, 0), "file");
   eq("salary > ¥20M, tax > 0 -> file",            fs_(false, 0, 1000000), "file");
+  eq("salary field empty, tax 0 -> file (no zeroTax)", fs_(true, 300000, 0, false), "file");
+  // CRO round 4, point 1: step-1 side income must reach the tax calculation
+  {
+    const withSide = E.stage3Calc({year:"2026", interestYen:100000, localTaxYen:14000, salary:1500000,
+                                   otherIncome:Math.max(0, 500000), dedMode:"auto", manualDed:0});
+    eq("salary 1.5M + interest 100k + side 500k (2026): income tax 4,750", withSide.txB, 4750);
+    eq("... so the verdict is file", fs_(true, 600000, withSide.txB), "file");
+    check("stage 3 uses the larger of side and other income",
+          /otherIncome: Math\.max\(otherIn, sideIncome\)/.test(html));
+    check("compute passes step-1 side income to stage 3",
+          /computeStage3\(taxYearInterestYen, taxYearLocalTaxYen, isCompound, years, fxIncomeYen, side\)/.test(html));
+    check("zeroTax needs an entered salary", /salaryEntered: !isNaN\(num\(\$\("salary"\)\)\)/.test(html));
+  }
   // smallest positive tax: taxable income ¥1,000 -> ¥50
   eq("incomeTax(1000) is 50", E.incomeTax(1000), 50);
   // spec examples: B is ¥0 in both years, A/C/D/E are not
@@ -265,8 +279,25 @@ if(im){
       check("key " + k + " in ja and en", (k in I18N.ja) && (k in I18N.en));
     }
     check("ja reason cites Art.120(1)", /所得税法120条1項/.test(I18N.ja.vZeroReason));
-    check("ja reason mentions resident tax", /住民税の申告が必要な場合があります/.test(I18N.ja.vZeroReason));
+    check("ja reason: tax computed including interest is ¥0 (no 'deductions or less')",
+          /利息を含めて計算した所得税は0円の見込みです/.test(I18N.ja.vZeroReason) && !/所得控除以下/.test(I18N.ja.vZeroReason));
+    check("ja reason: deductions are estimates for the selected year",
+          /所得控除は見積り（自動では社会保険料を給与の15%）で、選んだ年分で計算しています/.test(I18N.ja.vZeroReason));
+    check("ja reason: resident tax return is required (Local Tax Act 317-2(1))",
+          /住民税の申告（3月15日まで）が必要です（地方税法317条の2第1項/.test(I18N.ja.vZeroReason));
     check("en reason cites Art. 120(1)", /Art\. 120\(1\)/.test(I18N.en.vZeroReason));
+    check("en reason names the salary condition", /salary ¥20m or less, other income ¥200,000 or less/.test(I18N.en.vZeroReason));
+    check("en reason: resident tax (Art. 317-2(1))", /Art\. 317-2\(1\)/.test(I18N.en.vZeroReason));
+    // CRO round 4, point 2: no "a return is required" in the compound note when tax is ¥0
+    check("ja compound note for zeroTax drops '毎年の申告が必要'", !/毎年の申告が必要/.test(I18N.ja.s3_basisCompoundZero(3)));
+    check("en compound note for zeroTax drops 'a return is required in each'", !/a return is required in each/.test(I18N.en.s3_basisCompoundZero(3)));
+    check("compound note switched in the zeroTax branch", /if\(isCompound\) \$\("s3_basisNote"\)\.textContent=t\("s3_basisCompoundZero"\)\(years\);/.test(html));
+    // CRO round 4, point 9 + Income Tax Act 95(11): keep the carry-forward note, reworded
+    check("ja carry note for zeroTax", /所得税の申告の義務はありませんが、外国税額控除の繰越を使う場合は申告が必要です/.test(I18N.ja.carryNoteZero) && /所得税法95条11項/.test(I18N.ja.carryNoteZero));
+    check("en carry note for zeroTax", /must file one if you want to carry the foreign tax credit forward/.test(I18N.en.carryNoteZero) && /Art\. 95\(11\)/.test(I18N.en.carryNoteZero));
+    check("carry notes keep the r_carry slot", /id="r_carry"/.test(I18N.ja.carryNoteZero) && /id="r_carry"/.test(I18N.en.carryNoteZero));
+    check("carry note restored at the start of stage 3", /\$\("carryNote"\)\.innerHTML = t\("carryNote"\);/.test(html));
+    check("ja h_other explains the larger amount", /第1段階の「副業などの別収入」と大きいほうの額で計算します/.test(I18N.ja.h_other));
   }
 }
 

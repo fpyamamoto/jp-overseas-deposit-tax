@@ -1034,7 +1034,9 @@ const I18N = {
     vFileTitle:"確定申告が必要な可能性があります",
     stampZero:"所得税\n0円",
     vZeroTitle:"所得税の確定申告は不要の見込みです（所得税0円）",
-    vZeroReason:"申告不要の条件（給与2,000万円以下・20万円以下）には当たりませんが、第3段階の入力で計算すると、利息を含めた所得が所得控除以下で、所得税は0円の見込みです。所得税の額が0円なら、所得税の確定申告の義務はありません（所得税法120条1項）。住民税の申告が必要な場合があります。給与収入などを入れ直すと、判定も変わります。",
+    vZeroReason:"申告不要の条件（給与2,000万円以下・給与以外の所得20万円以下）には当たりませんが、第3段階の入力で計算すると、利息を含めて計算した所得税は0円の見込みです。所得税の額が0円なら、所得税の確定申告の義務はありません（所得税法120条1項）。所得控除は見積り（自動では社会保険料を給与の15%）で、選んだ年分で計算しています。実際の控除で所得税がかかる場合は申告が必要です。利息は住民税の対象になるため、所得税の申告をしない場合は、お住まいの市区町村に住民税の申告（3月15日まで）が必要です（地方税法317条の2第1項。市区町村の条例で除かれる場合などを除きます）。",
+    s3_basisCompoundZero:y=>`毎年課税されるため、1年あたり（最も利息が大きい年）で計算しています。年ごとに、所得税がかかるかで申告の要否が変わります。複数年の預金でも、選んだ年分の控除で計算する概算です。`,
+    carryNoteZero:'◆ 所得税の申告の義務はありませんが、外国税額控除の繰越を使う場合は申告が必要です。今年は所得税が0円のため、現地源泉税（繰越額 <span id="r_carry" style="font-family:var(--mono)">—</span>）は今年の税から引けません。翌年以降3年以内に繰り越して使うには、繰り越す元の年（今年）から使う年まで、毎年、控除限度額と外国税額を書いた書類を付けて申告する必要があります（所得税法95条11項）。',
     vGoReason:(cmp,fx)=>`給与2,000万円以下・${cmp?"1年あたりの利息":"利息"}${fx?"・為替差益":""}と別収入の合計が20万円以下、の条件を満たしています（住民税は別途ご確認を）。`,
     vSalary:"給与収入が2,000万円を超えるため、金額にかかわらず申告が必要です。",
     vCompound:fx=>`1年あたりの利息（円換算）${fx?"・為替差益":""}と別収入の合計が20万円を超えるため、毎年の申告が必要です。`,
@@ -1056,7 +1058,7 @@ const I18N = {
     h_dedMode:"ライトに使う方は「自動」でOK。",
     legacyDedNote:"『所得控除（手入力）』の入力の意味が変わりました。基礎控除はアプリが足すので、基礎控除を除いた額を入れ直してください。",
     f_manualDed:"基礎控除のほかの所得控除の合計（手入力）", h_manualDed:"源泉徴収票の「所得控除の額の合計額」から基礎控除を引いた額など。基礎控除は、選んだ年分と所得からアプリが足します。",
-    f_other:"その他の所得（副業・不動産等の所得金額）", h_other:"なければ 0 のまま。",
+    f_other:"その他の所得（副業・不動産等の所得金額）", h_other:"なければ 0 のまま。第1段階の「副業などの別収入」と大きいほうの額で計算します。",
     s3_from1:"第1段階の計算結果",
     s3_interestLabel:"利子所得（円換算）", s3_localtaxLabel:"現地の源泉税（円換算）", s3_fxLabel:"為替差益（雑所得）",
     s3_basisCompound:y=>`毎年課税されるため、1年あたり（最も利息が大きい年）で計算しています。実際は${y}年間、毎年の申告が必要です。複数年の預金でも、選んだ年分の控除で計算する概算です。`,
@@ -1155,7 +1157,9 @@ const I18N = {
     vFileTitle:"A tax return is likely required",
     stampZero:"TAX\n¥0",
     vZeroTitle:"No income tax return is expected to be required (income tax ¥0)",
-    vZeroReason:"The ¥200,000 exemption does not apply, but with the inputs in step 3 your income including the interest does not exceed your deductions, so income tax is expected to be ¥0. When income tax is ¥0, there is no obligation to file an income tax return (Income Tax Act, Art. 120(1)). A resident tax filing may still be required. Changing the salary or other inputs may change this result.",
+    vZeroReason:"The filing exemption for employees (salary ¥20m or less, other income ¥200,000 or less) does not apply, but with the inputs in step 3, income tax calculated including the interest is expected to be ¥0. When income tax is ¥0, there is no obligation to file an income tax return (Income Tax Act, Art. 120(1)). Deductions are estimated (automatic mode assumes social insurance of 15% of salary) for the selected tax year; if your actual deductions leave income tax payable, you must file. Because the interest is subject to resident tax, if you do not file an income tax return you must file a resident tax return with your municipality by 15 March (Local Tax Act, Art. 317-2(1); except where exempted, e.g. by municipal ordinance).",
+    s3_basisCompoundZero:y=>`Because interest is taxed annually, this uses one year (the year with the largest interest). Whether a return is required depends, year by year, on whether income tax is payable. Even for a multi-year deposit, this estimate uses the deductions of the selected tax year.`,
+    carryNoteZero:'◆ You have no obligation to file an income tax return, but you must file one if you want to carry the foreign tax credit forward. Because income tax is ¥0 this year, the local withholding tax (carry-forward <span id="r_carry" style="font-family:var(--mono)">—</span>) cannot be credited this year. To use it within the next three years, you must file a return each year from this year until the year you use it, attaching a statement of the credit limit and the foreign tax (Income Tax Act, Art. 95(11)).',
     vGoReason:(cmp,fx)=>`Employment income is ¥20m or less, and ${cmp?"annual interest":"interest"}${fx?", FX gain,":""} plus other income totals ¥200,000 or less. (Resident tax is assessed separately.)`,
     vSalary:"Employment income exceeds ¥20,000,000, so a return is required regardless of the amounts.",
     vCompound:fx=>`Annual interest${fx?", FX gain,":""} plus other income exceeds ¥200,000, so a return is required each year.`,
@@ -1177,7 +1181,7 @@ const I18N = {
     h_dedMode:"“Automatic” is fine for a quick estimate.",
     legacyDedNote:"The meaning of the ‘Deductions (manual)’ input has changed. The app now adds the basic deduction, so please re-enter the amount without it.",
     f_manualDed:"Deductions other than the basic deduction (manual)", h_manualDed:"e.g. the total deductions on your withholding slip minus the basic deduction. The app adds the basic deduction for the selected year and your income.",
-    f_other:"Other income (side work, property, etc.)", h_other:"Leave at 0 if none.",
+    f_other:"Other income (side work, property, etc.)", h_other:"Leave at 0 if none. The larger of this and the other income entered in step 1 is used.",
     s3_from1:"Calculated in step 1",
     s3_interestLabel:"Interest income (in yen)", s3_localtaxLabel:"Foreign withholding tax (in yen)", s3_fxLabel:"FX gain (miscellaneous income)",
     s3_basisCompound:y=>`Because interest is taxed annually, this uses one year (the year with the largest interest). In practice a return is required in each of the ${y} years. Even for a multi-year deposit, this estimate uses the deductions of the selected tax year.`,
@@ -1378,7 +1382,9 @@ function stage3Calc(o){
    "file":    otherwise. incomeTaxTotal is null until step 3 is computed. */
 function filingState(o){
   if(o.salaryUnder20M && o.otherIncomeTotal <= o.filingLine) return "noFile";
-  if(o.incomeTaxTotal !== null && o.incomeTaxTotal !== undefined && o.incomeTaxTotal <= 0) return "zeroTax";
+  /* only when salary <= ¥20M was answered "yes" and a salary amount was entered (safe side) */
+  if(o.salaryUnder20M && o.salaryEntered &&
+     o.incomeTaxTotal !== null && o.incomeTaxTotal !== undefined && o.incomeTaxTotal <= 0) return "zeroTax";
   return "file";
 }
 /* ===== TAX ENGINE END ===== */
@@ -1646,15 +1652,20 @@ function compute(){
     $("verdictReason").textContent=reason;
     $("stage2").classList.add("hidden");
     $("stage3").classList.remove("hidden"); $("stage3").classList.add("fade");
-    const r3 = computeStage3(taxYearInterestYen, taxYearLocalTaxYen, isCompound, years, fxIncomeYen);
+    const r3 = computeStage3(taxYearInterestYen, taxYearLocalTaxYen, isCompound, years, fxIncomeYen, side);
     /* Art.120(1): no duty to file an income tax return when income tax is ¥0 */
     if(filingState({salaryUnder20M: salaryYN==="はい",
+         salaryEntered: !isNaN(num($("salary"))),
          otherIncomeTotal: side + taxYearInterestYen + fxIncomeYen,
          filingLine: FILING_LINE, incomeTaxTotal: r3.txB}) === "zeroTax"){
       v.classList.remove("file"); v.classList.add("go");
       stamp.textContent=t("stampZero");
       $("verdictTitle").textContent=t("vZeroTitle");
       $("verdictReason").textContent=t("vZeroReason");
+      if(isCompound) $("s3_basisNote").textContent=t("s3_basisCompoundZero")(years);
+      /* Art.95(11): a return is needed to carry the foreign tax forward */
+      $("carryNote").innerHTML=t("carryNoteZero");
+      $("r_carry").textContent=yen(r3.carry);
     }
   }
 }
@@ -1686,8 +1697,10 @@ function renderSchedule(schedule){
 }
 
 /* ---------- Stage 3 ---------- */
-function computeStage3(interestYen, localTaxYen, isCompound, years, fxIncomeYen){
+function computeStage3(interestYen, localTaxYen, isCompound, years, fxIncomeYen, sideIncome){
   fxIncomeYen = fxIncomeYen || 0;
+  sideIncome = sideIncome || 0;
+  $("carryNote").innerHTML = t("carryNote");   // the zero-tax verdict may replace it afterwards
   $("s3_interest").textContent = yen(interestYen);
   $("s3_localtax").textContent = yen(localTaxYen);
   $("s3_basisNote").textContent = isCompound ? t("s3_basisCompound")(years) : t("s3_basisSimple");
@@ -1708,7 +1721,7 @@ function computeStage3(interestYen, localTaxYen, isCompound, years, fxIncomeYen)
   const r = stage3Calc({
     year: tyEl ? tyEl.value : RULES.defaultYear,
     interestYen, localTaxYen, fxIncomeYen,
-    salary, otherIncome: otherIn, dedMode: mode, manualDed
+    salary, otherIncome: Math.max(otherIn, sideIncome), dedMode: mode, manualDed
   });
   const {s1, s2, credit, s4, s5, s6, erate, carry} = r;
 
