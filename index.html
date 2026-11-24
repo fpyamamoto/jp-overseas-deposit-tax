@@ -611,7 +611,7 @@
             <input type="number" id="fx" value="150" min="0" step="0.0001">
             <span class="unit">円</span>
           </div>
-          <p class="hint"><span data-i18n="h_fx">例：1米ドル＝150円なら 150、1タイバーツ＝4.3円なら 4.3。</span><span id="fxRoleNote"></span></p>
+          <p class="hint"><span data-i18n="h_fx">例：1米ドル＝150円なら 150、1タイバーツ＝4.3円なら 4.3。申告では、利息を受け取った日の仲値（TTM）が原則です。</span><span id="fxRoleNote"></span></p>
         </div>
 
         <!-- optional: FX gain on conversion back to JPY -->
@@ -759,11 +759,22 @@
       </div>
     </div>
 
-    <div class="callout" style="margin-top:0;margin-bottom:18px;" data-i18n-html="s3_assume">前提：社会保険料＝給与収入×15％・基礎控除48万円で所得控除を自動見積り／住民税は一律10％・復興特別所得税2.1％／条約の限度税率を超えて現地徴収された分は日本で控除できない場合があります。あくまで概算です。</div>
+    <div class="callout" style="margin-top:0;margin-bottom:18px;" data-i18n-html="s3_assume">前提：所得控除は、社会保険料＝給与収入×15％と、選んだ年分の基礎控除（合計所得金額に応じて変わります）で自動見積り／給与所得控除も選んだ年分の額／住民税は一律10％・復興特別所得税2.1％／条約の限度税率を超えて現地徴収された分は日本で控除できない場合があります。あくまで概算です。</div>
 
     <div class="grid">
       <div class="card">
         <p class="card-label" data-i18n="s3_inputs">追加の入力項目</p>
+
+        <div class="field">
+          <span class="lab"><span class="req">＊</span><span data-i18n="f_taxYear">どの年分の税で試算しますか</span></span>
+          <div class="seg">
+            <input type="radio" name="taxYear" id="ty2025" value="2025">
+            <label for="ty2025" data-i18n="ty2025">令和7年分（2025年）</label>
+            <input type="radio" name="taxYear" id="ty2026" value="2026" checked>
+            <label for="ty2026" data-i18n="ty2026">令和8年分（2026年）</label>
+          </div>
+          <p class="hint" data-i18n="h_taxYear">令和8年分は、2027年に行う確定申告の分です。年分で基礎控除と給与所得控除が変わります。</p>
+        </div>
 
         <div class="field">
           <label for="salary"><span class="req">＊</span><span data-i18n="f_salary">給与収入（額面・年間）</span></label>
@@ -786,12 +797,12 @@
         </div>
 
         <div class="field hidden" id="manualDedField">
-          <label for="manualDed" data-i18n="f_manualDed">所得控除の合計（手入力）</label>
+          <label for="manualDed" data-i18n="f_manualDed">基礎控除のほかの所得控除の合計（手入力）</label>
           <div class="with-unit">
             <input type="number" id="manualDed" value="0" min="0" step="10000">
             <span class="unit">円</span>
           </div>
-          <p class="hint" data-i18n="h_manualDed">源泉徴収票の各種控除の合計など。</p>
+          <p class="hint" data-i18n="h_manualDed">源泉徴収票の「所得控除の額の合計額」から基礎控除を引いた額など。基礎控除は、選んだ年分と所得からアプリが足します。</p>
         </div>
 
         <div class="field">
@@ -867,6 +878,11 @@
         <span class="src-tag" data-i18n="src_t4">各国税制</span>
         <a href="https://www.jetro.go.jp/world/" target="_blank" rel="noopener noreferrer"><span data-i18n="src_l4">ジェトロ「国・地域別に見る」</span></a>
         <p data-i18n="src_d4">各国の税制・源泉徴収税率の実務情報。</p>
+      </div>
+      <div class="src-item">
+        <span class="src-tag" data-i18n="src_t5">所得控除・税率</span>
+        <a href="https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1199.htm" target="_blank" rel="noopener noreferrer"><span data-i18n="src_l5">国税庁 No.1199「基礎控除」</span></a>
+        <p data-i18n-html="src_d5">給与所得控除は <a href="https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1410.htm" target="_blank" rel="noopener noreferrer">No.1410</a>、所得税の税率は <a href="https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2260.htm" target="_blank" rel="noopener noreferrer">No.2260</a>。令和8年度税制改正まで反映（2026年11月確認）。</p>
       </div>
     </div>
 
@@ -982,7 +998,7 @@ const I18N = {
     payHintSimple:"満期時に利息をまとめて受け取る（単利）。利息は満期の年に一括して課税されます。",
     payHintCompound:"毎年利息を受け取り、税引後の額を元本に再投資する（複利）。利息は毎年課税され、原則として毎年の申告対象になります。",
     f_fx:"想定為替レート（現地通貨1単位＝◯円）",
-    h_fx:"例：1米ドル＝150円なら 150、1タイバーツ＝4.3円なら 4.3。",
+    h_fx:"例：1米ドル＝150円なら 150、1タイバーツ＝4.3円なら 4.3。申告では、利息を受け取った日の仲値（TTM）が原則です。",
     fxRole:"（預入時のレートとして使用します）",
     fx_toggle:"円に戻したときの損益も見る", fx_toggle_sub:"任意。円転しない場合は不要です。",
     f_fxOut:"円転時の為替レート（現地通貨1単位＝◯円）",
@@ -1027,12 +1043,14 @@ const I18N = {
     s2_li4:"<strong>住民税は別扱い</strong>です。所得税の20万円ルールは住民税には適用されません。所得税が不要でも住民税の申告が必要な場合があります。",
     s3_title:"日本の所得税・外国税額控除の概算",
     s3_sub:"国外で受け取る預金利子は日本で源泉徴収されないため、申告する場合は総合課税（累進）で計算します。追加で数点を入力してください。",
-    s3_assume:"前提：社会保険料＝給与収入×15％・基礎控除48万円で所得控除を自動見積り／住民税は一律10％・復興特別所得税2.1％／控除限度額の国外所得は所得総額の90％を上限（調整国外所得金額）／条約の限度税率を超えて現地徴収された分は日本で控除できない場合があります。あくまで概算です。",
+    s3_assume:"前提：所得控除は、社会保険料＝給与収入×15％と、選んだ年分の基礎控除（合計所得金額に応じて変わります）で自動見積り／給与所得控除も選んだ年分の額／住民税は一律10％・復興特別所得税2.1％／控除限度額の国外所得は所得総額の90％を上限（調整国外所得金額）／条約の限度税率を超えて現地徴収された分は日本で控除できない場合があります。あくまで概算です。",
     s3_inputs:"追加の入力項目",
+    f_taxYear:"どの年分の税で試算しますか", ty2025:"令和7年分（2025年）", ty2026:"令和8年分（2026年）",
+    h_taxYear:"令和8年分は、2027年に行う確定申告の分です。年分で基礎控除と給与所得控除が変わります。",
     f_salary:"給与収入（額面・年間）", h_salary:"源泉徴収票の「支払金額」。",
     f_dedMode:"所得控除の見積り方法", ded_auto:"自動", ded_manual:"手入力",
     h_dedMode:"ライトに使う方は「自動」でOK。",
-    f_manualDed:"所得控除の合計（手入力）", h_manualDed:"源泉徴収票の各種控除の合計など。",
+    f_manualDed:"基礎控除のほかの所得控除の合計（手入力）", h_manualDed:"源泉徴収票の「所得控除の額の合計額」から基礎控除を引いた額など。基礎控除は、選んだ年分と所得からアプリが足します。",
     f_other:"その他の所得（副業・不動産等の所得金額）", h_other:"なければ 0 のまま。",
     s3_from1:"第1段階の計算結果",
     s3_interestLabel:"利子所得（円換算）", s3_localtaxLabel:"現地の源泉税（円換算）", s3_fxLabel:"為替差益（雑所得）",
@@ -1052,6 +1070,8 @@ const I18N = {
     src_d2:"OECDモデル租税条約と、源泉地国課税の範囲についての解説。",
     src_d3:"控除限度額の計算式と、3年間の繰越控除の根拠。",
     src_d4:"各国の税制・源泉徴収税率の実務情報。",
+    src_t5:"所得控除・税率", src_l5:"国税庁 No.1199「基礎控除」",
+    src_d5:'給与所得控除は <a href="https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1410.htm" target="_blank" rel="noopener noreferrer">No.1410</a>、所得税の税率は <a href="https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2260.htm" target="_blank" rel="noopener noreferrer">No.2260</a>。令和8年度税制改正まで反映（2026年11月確認）。',
     src_warnTitle:"税率の扱いについて、3つの注意点があります。",
     src_w1:"<strong>収録している税率は代表値です。</strong>利子の限度税率は、預金の種類・支払先の性質・条約の適用条件によって同じ国でも異なる場合があります（例：タイは条約上10〜25%、フィリピンは一部15%）。備考欄に記載のある国は特にご注意ください。",
     src_w2:"<strong>条約の限度税率を超えて源泉徴収された分は、日本で控除できない場合があります。</strong>国税庁は、条約の規定により相手国が課すことができる額を超える部分は外国税額控除の対象外としています。超過分は原則として現地で還付請求すべきものです。",
@@ -1095,7 +1115,7 @@ const I18N = {
     payHintSimple:"Interest is paid as a lump sum at maturity (simple interest), and taxed in that single year.",
     payHintCompound:"Interest is received each year and reinvested after tax (compound). It is taxed annually, so a return is generally required every year.",
     f_fx:"Assumed FX rate (1 unit of local currency = ¥)",
-    h_fx:"e.g. enter 150 if US$1 = ¥150, or 4.3 if THB 1 = ¥4.3.",
+    h_fx:"e.g. enter 150 if US$1 = ¥150, or 4.3 if THB 1 = ¥4.3. For a tax return, the mid rate (TTM) on the date you receive the interest is generally used.",
     fxRole:" (used as the rate at deposit)",
     fx_toggle:"Also show gain/loss on converting back to yen", fx_toggle_sub:"Optional. Skip if you keep the foreign currency.",
     f_fxOut:"FX rate at conversion (1 unit of local currency = ¥)",
@@ -1140,12 +1160,14 @@ const I18N = {
     s2_li4:"<strong>Resident tax is separate.</strong> The ¥200,000 rule applies to income tax only. A resident tax filing may still be required even when no income tax return is.",
     s3_title:"Japanese income tax and the foreign tax credit",
     s3_sub:"Interest paid outside Japan is not withheld at source by Japan, so if you file, it is aggregated and taxed at progressive rates. A few more inputs are needed.",
-    s3_assume:"Assumptions: deductions estimated automatically as social insurance (15% of salary) plus the ¥480,000 basic deduction; resident tax at a flat 10%; special reconstruction income tax at 2.1%; foreign-source income in the credit limit is capped at 90% of total income (adjusted foreign source income). Foreign tax withheld above a treaty cap may not be creditable in Japan. These are estimates only.",
+    s3_assume:"Assumptions: deductions estimated automatically as social insurance (15% of salary) plus the basic deduction for the selected tax year, which depends on total income; the employment income deduction also follows the selected year; resident tax at a flat 10%; special reconstruction income tax at 2.1%; foreign-source income in the credit limit is capped at 90% of total income (adjusted foreign source income). Foreign tax withheld above a treaty cap may not be creditable in Japan. These are estimates only.",
     s3_inputs:"Additional inputs",
+    f_taxYear:"Tax year", ty2025:"2025", ty2026:"2026",
+    h_taxYear:"2026 is the year reported in the return filed in 2027. The basic deduction and the employment income deduction differ by year.",
     f_salary:"Employment income (gross, annual)", h_salary:"The gross amount on your withholding slip.",
     f_dedMode:"How to estimate deductions", ded_auto:"Automatic", ded_manual:"Manual",
     h_dedMode:"“Automatic” is fine for a quick estimate.",
-    f_manualDed:"Total deductions (manual)", h_manualDed:"e.g. the total of the deductions on your withholding slip.",
+    f_manualDed:"Deductions other than the basic deduction (manual)", h_manualDed:"e.g. the total deductions on your withholding slip minus the basic deduction. The app adds the basic deduction for the selected year and your income.",
     f_other:"Other income (side work, property, etc.)", h_other:"Leave at 0 if none.",
     s3_from1:"Calculated in step 1",
     s3_interestLabel:"Interest income (in yen)", s3_localtaxLabel:"Foreign withholding tax (in yen)", s3_fxLabel:"FX gain (miscellaneous income)",
@@ -1165,6 +1187,8 @@ const I18N = {
     src_d2:"On the OECD Model Convention and the scope of source-country taxation.",
     src_d3:"The credit limit formula and the basis for the three-year carry-forward.",
     src_d4:"Practical information on each country's tax system and withholding rates.",
+    src_t5:"Deductions and rates", src_l5:"NTA No.1199 — Basic deduction",
+    src_d5:'Employment income deduction: <a href="https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1410.htm" target="_blank" rel="noopener noreferrer">No.1410</a>; income tax rates: <a href="https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2260.htm" target="_blank" rel="noopener noreferrer">No.2260</a>. Reflects the FY2026 tax reform (checked November 2026).',
     src_warnTitle:"Three cautions about these rates.",
     src_w1:"<strong>The rates shown are representative values.</strong> A treaty cap on interest can differ within the same country depending on the type of deposit, the nature of the payee, and the conditions for applying the treaty (Thailand ranges 10–25%; the Philippines is 15% in some cases). Pay particular attention to countries with a note.",
     src_w2:"<strong>Tax withheld above a treaty cap may not be creditable in Japan.</strong> Japan's National Tax Agency excludes from the foreign tax credit any amount exceeding what the treaty permits the other country to impose. The excess should generally be reclaimed locally.",
@@ -1209,28 +1233,134 @@ const yen  = n => "¥" + Math.round(n).toLocaleString("ja-JP");
 const loc  = n => n.toLocaleString("ja-JP",{minimumFractionDigits:2,maximumFractionDigits:2});
 const pct  = n => (n*100).toLocaleString("ja-JP",{maximumFractionDigits:1}) + "%";
 const num  = el => { const v = parseFloat(el.value); return isNaN(v) ? NaN : v; };
+/* ===== TAX ENGINE START =====
+   Pure functions only (no DOM). tests/run.js extracts this block from
+   index.html and runs it as-is, so keep it self-contained.            */
+
+/* Rules by tax year. Sources (checked 2026-11-24):
+   NTA Tax Answer No.2260 (rates), No.1410 (employment income deduction),
+   No.1199 (basic deduction), and the NTA Q&A on the FY2026 reform (May 2026).
+   2027 onward is not offered until the foreign tax credit limit under the
+   new defence special income tax has been confirmed.                   */
+const RULES = {
+  defaultYear: "2026",
+  /* 速算表: [upper limit of taxable income, rate, amount to subtract] */
+  incomeTax: [
+    [1950000, 0.05, 0], [3300000, 0.10, 97500], [6950000, 0.20, 427500],
+    [9000000, 0.23, 636000], [18000000, 0.33, 1536000], [40000000, 0.40, 2796000],
+    [Infinity, 0.45, 4796000]
+  ],
+  years: {
+    "2025": {
+      /* 給与所得控除: [upper limit of gross salary (inclusive), rate, add] */
+      salaryDeduction: [
+        [1900000, 0, 650000], [3600000, 0.30, 80000], [6600000, 0.20, 440000],
+        [8500000, 0.10, 1100000], [Infinity, 0, 1950000]
+      ],
+      salaryIncomeSpecial: [],
+      /* 基礎控除: [upper limit of total income (inclusive), amount] */
+      basicDeduction: [
+        [1320000, 950000], [3360000, 880000], [4890000, 680000], [6550000, 630000],
+        [23500000, 580000], [24000000, 480000], [24500000, 320000], [25000000, 160000],
+        [Infinity, 0]
+      ]
+    },
+    "2026": {
+      salaryDeduction: [
+        [2200000, 0, 740000], [3600000, 0.30, 80000], [6600000, 0.20, 440000],
+        [8500000, 0.10, 1100000], [Infinity, 0, 1950000]
+      ],
+      /* 2026–2027 special rule for gross salary ¥691,000 to under ¥2,200,000
+         (No.1410 note 2): [from (inclusive), to (exclusive), fixed income or null, subtract] */
+      salaryIncomeSpecial: [
+        [691000, 741000, 0, 0], [741000, 2191000, null, 740000],
+        [2191000, 2193000, 1451000, 0], [2193000, 2196000, 1453000, 0],
+        [2196000, 2200000, 1456000, 0]
+      ],
+      basicDeduction: [
+        [4890000, 1040000], [6550000, 670000], [23500000, 620000],
+        [24000000, 480000], [24500000, 320000], [25000000, 160000], [Infinity, 0]
+      ]
+    }
+  }
+};
+
 const roundDown3 = x => Math.floor(x/1000)*1000;
+
+function yearRules(year){
+  return RULES.years[year] || RULES.years[RULES.defaultYear];
+}
 
 /* Japanese income-tax quick table (速算表) */
 function incomeTax(x){
   if(x<=0) return 0;
-  if(x<=1950000)  return x*0.05;
-  if(x<=3300000)  return x*0.10 - 97500;
-  if(x<=6950000)  return x*0.20 - 427500;
-  if(x<=9000000)  return x*0.23 - 636000;
-  if(x<=18000000) return x*0.33 - 1536000;
-  if(x<=40000000) return x*0.40 - 2796000;
-  return x*0.45 - 4796000;
+  for(const [lim, rate, sub] of RULES.incomeTax){
+    if(x<=lim) return x*rate - sub;
+  }
+  return 0;
 }
+
 /* employment-income deduction (給与所得控除) */
-function salaryDeduction(S){
-  if(S<=1625000) return 550000;
-  if(S<=1800000) return S*0.4 - 100000;
-  if(S<=3600000) return S*0.3 + 80000;
-  if(S<=6600000) return S*0.2 + 440000;
-  if(S<=8500000) return S*0.1 + 1100000;
-  return 1950000;
+function salaryDeduction(S, year){
+  for(const [lim, rate, add] of yearRules(year).salaryDeduction){
+    if(S<=lim) return S*rate + add;
+  }
+  return 0;
 }
+
+/* employment income (給与所得の金額) */
+function employmentIncome(S, year){
+  for(const [from, to, fixed, sub] of yearRules(year).salaryIncomeSpecial){
+    if(S>=from && S<to) return (fixed !== null) ? fixed : Math.max(0, S-sub);
+  }
+  return Math.max(0, S - salaryDeduction(S, year));
+}
+
+/* basic deduction (基礎控除) by total income (合計所得金額) */
+function basicDeduction(totalIncome, year){
+  for(const [lim, amt] of yearRules(year).basicDeduction){
+    if(totalIncome<=lim) return amt;
+  }
+  return 0;
+}
+
+/* Stage 3 numbers. Tax on the interest = tax with it minus tax without it.
+   The basic deduction is looked up separately for each side, because the
+   interest can push total income into a lower band.                     */
+function stage3Calc(o){
+  const year = o.year, interestYen = o.interestYen, localTaxYen = o.localTaxYen;
+  const other = (o.otherIncome || 0) + (o.fxIncomeYen || 0);
+  const salary = o.salary || 0;
+  const ky  = employmentIncome(salary, year);
+  const otherDed = (o.dedMode === "manual") ? (o.manualDed || 0) : salary*0.15;
+
+  const tiA = Math.max(0, ky+other);
+  const tiB = Math.max(0, ky+other+interestYen);
+  const basicA = basicDeduction(tiA, year), basicB = basicDeduction(tiB, year);
+  const ktA = Math.max(0, roundDown3(tiA-otherDed-basicA));
+  const ktB = Math.max(0, roundDown3(tiB-otherDed-basicB));
+
+  const txA = incomeTax(ktA), txB = incomeTax(ktB);
+  const intTax   = Math.max(0, txB-txA);
+  const intFukko = Math.round(intTax*0.021);
+  const intJz    = Math.round(interestYen*0.10);
+  const jpBefore = intTax + intFukko + intJz;
+
+  /* 調整国外所得金額：国外所得は所得総額の90%が上限（所得税法施行令222②）。
+     給与が主収入なら通常この上限には当たらないが、法令に忠実に実装する。 */
+  const adjForeign = Math.min(interestYen, tiB*0.9);
+  const limIt  = (tiB===0) ? 0 : txB*adjForeign/tiB;
+  const limAll = limIt*(1 + 0.021 + 0.30);      // 所得税限度額 ×1.321
+  const credit = Math.min(localTaxYen, limAll);
+  const carry  = Math.max(0, localTaxYen-limAll);
+
+  const s1=localTaxYen, s2=jpBefore, s4=Math.max(0, jpBefore-credit);
+  const s5=localTaxYen+s4, s6=interestYen-s5;
+  const erate = interestYen===0 ? 0 : s5/interestYen;
+  return {ky, basicA, basicB, tiA, tiB, ktA, ktB, intTax, intFukko, intJz,
+          s1, s2, credit, s4, s5, s6, erate, carry};
+}
+/* ===== TAX ENGINE END ===== */
 
 /* ---------- populate country select ---------- */
 const sel = $("country");
@@ -1541,34 +1671,13 @@ function computeStage3(interestYen, localTaxYen, isCompound, years, fxIncomeYen)
   /* FX gain is domestic-source 雑所得: it raises total income (and thus the
      marginal rate on interest) but is NOT foreign-source income, so it does
      not enlarge the foreign tax credit limit. */
-  const other = otherIn + fxIncomeYen;
-
-  const kc  = salaryDeduction(salary);
-  const ky  = Math.max(0, salary-kc);
-  const ded = (mode==="auto") ? (salary*0.15 + 480000) : manualDed;
-
-  const tiA = Math.max(0, ky+other);
-  const tiB = Math.max(0, ky+other+interestYen);
-  const ktA = Math.max(0, roundDown3(tiA-ded));
-  const ktB = Math.max(0, roundDown3(tiB-ded));
-
-  const txA = incomeTax(ktA), txB = incomeTax(ktB);
-  const intTax   = Math.max(0, txB-txA);
-  const intFukko = Math.round(intTax*0.021);
-  const intJz    = Math.round(interestYen*0.10);
-  const jpBefore = intTax + intFukko + intJz;
-
-  /* 調整国外所得金額：国外所得は所得総額の90%が上限（所得税法施行令222②）。
-     給与が主収入なら通常この上限には当たらないが、法令に忠実に実装する。 */
-  const adjForeign = Math.min(interestYen, tiB*0.9);
-  const limIt  = (tiB===0) ? 0 : txB*adjForeign/tiB;
-  const limAll = limIt*(1 + 0.021 + 0.30);      // 所得税限度額 ×1.321
-  const credit = Math.min(localTaxYen, limAll);
-  const carry  = Math.max(0, localTaxYen-limAll);
-
-  const s1=localTaxYen, s2=jpBefore, s4=Math.max(0, jpBefore-credit);
-  const s5=localTaxYen+s4, s6=interestYen-s5;
-  const erate = interestYen===0 ? 0 : s5/interestYen;
+  const tyEl = document.querySelector('input[name="taxYear"]:checked');
+  const r = stage3Calc({
+    year: tyEl ? tyEl.value : RULES.defaultYear,
+    interestYen, localTaxYen, fxIncomeYen,
+    salary, otherIncome: otherIn, dedMode: mode, manualDed
+  });
+  const {s1, s2, credit, s4, s5, s6, erate, carry} = r;
 
   $("r_s1").textContent=yen(s1);
   $("r_s2").textContent=yen(s2);
@@ -1599,6 +1708,9 @@ const URL_FIELDS = [
   ["sy", () => document.querySelector('input[name="salaryYN"]:checked').value === "はい" ? "1" : "0",
          v => { $(v === "1" ? "salYes" : "salNo").checked = true; }],
   ["sd", () => $("side").value,           v => $("side").value = v],
+  /* tax year: old links without "ty" open as the default year (2026) */
+  ["ty", () => { const e = document.querySelector('input[name="taxYear"]:checked'); return e ? e.value : ""; },
+         v => { const e = $("ty" + v); if(e && RULES.years[v]) e.checked = true; }],
   ["sa", () => $("salary").value,         v => $("salary").value = v],
   ["dm", () => document.querySelector('input[name="dedMode"]:checked').value === "auto" ? "a" : "m",
          v => { $(v === "m" ? "dedManual" : "dedAuto").checked = true; }],
