@@ -305,5 +305,44 @@ if(im){
 check("one-column grid uses minmax(0,1fr)", /@media\(max-width:760px\)\{\.grid\{grid-template-columns:minmax\(0,1fr\);\}\}/.test(html));
 check("row labels wrap on narrow screens", /@media\(max-width:520px\)\{\.lrow \.k\{white-space:normal;min-width:0;\}\}/.test(html));
 
+/* ---------- 11. withholding table (re-checked 2026-11-24; same as the yield calculator) ---------- */
+{
+  const cm = html.match(/const COUNTRIES = (\[[\s\S]*?\n\]);/);
+  check("COUNTRIES found", !!cm);
+  if(cm){
+    const COUNTRIES = vm.runInNewContext("(" + cm[1] + ")", {});
+    const C = name => COUNTRIES.find(c => c.name === name);
+    eq("28 rows", COUNTRIES.length, 28);
+    const T = {
+      "タイ":       {rate:0.15, treaty:"有", range:false},   // Japan-Thailand treaty 11(2): caps for companies only; Revenue Code s.50(2)(a) 15%
+      "トルコ":     {rate:0.15, treaty:"有", range:true},    // Japan-Turkey treaty 11(2)(b) 15%
+      "ジョージア": {rate:0.05, treaty:"有", range:false},   // Japan-Georgia treaty 11(2) 5%
+      "フィリピン": {rate:0.10, treaty:"有", range:false},   // treaty 11(2) as amended 10%
+      "メキシコ":   {rate:0.10, treaty:"有", range:false},   // treaty 11(2)(a)(iii) 10% for interest paid by a bank
+    };
+    for(const [name, w] of Object.entries(T)){
+      const c = C(name);
+      check(name + " row exists", !!c);
+      if(!c) continue;
+      eq(name + " rate", c.rate, w.rate); eq(name + " treaty", c.treaty, w.treaty); eq(name + " range mark", !!c.range, w.range);
+    }
+    check("タイ note", /受け取る人が法人のときだけ。個人はタイ国内法の15%/.test(C("タイ").note));
+    check("ジョージア note and source", /2021年7月発効/.test(C("ジョージア").note) && /tax_convetion_list_jp\.html$/.test(C("ジョージア").src));
+    check("フィリピン note has no 15%", !/15%/.test(C("フィリピン").note));
+    // the stage-3 figures move with the Thai rate (THB 1,000,000 at 1.5% = 15,000 interest -> 2,250 withheld)
+    eq("Thai withholding on 15,000 interest", Math.round(15000 * C("タイ").rate), 2250);
+  }
+  if(im){
+    const I18N = vm.runInNewContext("(" + im[1] + ")", {});
+    check("src_w1 (ja): no old Thai/Philippine examples", !/タイは条約上10〜25%/.test(I18N.ja.src_w1) && !/フィリピンは一部15%/.test(I18N.ja.src_w1));
+    check("src_w1 (ja): re-checked countries", /タイ・トルコ・ジョージア・フィリピン・メキシコは2026年11月に条約の本文などで確かめ直しました/.test(I18N.ja.src_w1));
+    check("src_w1 (en): no old examples", !/Thailand ranges 10–25%/.test(I18N.en.src_w1) && !/15% in some cases/.test(I18N.en.src_w1));
+    check("src_lede (ja): domestic rate rule", /タイのように条約の上限が個人に当たらない国や、国内法の率のほうが低い国（香港・マレーシア）は、国内法の率を入れています/.test(I18N.ja.src_lede));
+    check("src_lede (en): domestic rate rule", /Where the treaty cap does not apply to individuals \(Thailand\)/.test(I18N.en.src_lede));
+    check("static src_w1 matches dictionary", (html.match(/data-i18n-html="src_w1">([\s\S]*?)<\/li>/) || [])[1] === I18N.ja.src_w1);
+    check("static src_lede has the domestic rate rule", /国内法に優先します。タイのように条約の上限が個人に当たらない国/.test(html));
+  }
+}
+
 console.log(passed + " passed, " + failed + " failed");
 process.exit(failed ? 1 : 0);
