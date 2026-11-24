@@ -176,5 +176,49 @@ else{
   }
 }
 
+/* ---------- 7. notice for links shared before the tax-year selector ---------- */
+const lm = html.match(/\/\* ===== LINK COMPAT START =====[\s\S]*?\/\* ===== LINK COMPAT END ===== \*\//);
+if(!lm){ check("LINK COMPAT block found", false); }
+else{
+  const isLegacy = vm.runInNewContext(lm[0] + "\n;isLegacyManualLink", {});
+  const L = q => isLegacy(new URLSearchParams(q));
+  eq("old link, manual, md>0 -> notice",       L("sa=6000000&dm=m&md=1380000"), true);
+  eq("old link, manual, md=0 -> no notice",    L("sa=6000000&dm=m&md=0"), false);
+  eq("old link, manual, md empty -> no notice", L("dm=m&md="), false);
+  eq("old link, automatic -> no notice",       L("sa=6000000&dm=a&md=1380000"), false);
+  eq("new link (ty), manual, md>0 -> no notice", L("ty=2026&dm=m&md=900000"), false);
+  eq("new link (ty=2025), manual -> no notice",  L("ty=2025&dm=m&md=900000"), false);
+  eq("no parameters -> no notice",             L(""), false);
+}
+check("notice element exists, hidden by default",
+      /<p class="cwarn hidden" id="legacyDedNote" data-i18n="legacyDedNote">/.test(html));
+check("notice shown only in manual mode while the flag is on",
+      /\$\("legacyDedNote"\)\.classList\.toggle\("hidden", !\(legacyDedNote && mode==="manual"\)\)/.test(html));
+check("editing the manual amount clears the notice",
+      /\$\("manualDed"\)\.addEventListener\("input", \(\) => \{ legacyDedNote = false; \}\)/.test(html));
+check("the flag is set before the first compute()",
+      html.indexOf("let legacyDedNote") < html.indexOf("applyLang(initialLang());"));
+
+/* ---------- 8. reviewed wording (CRO points 1, 2, 3, 6, 7) ---------- */
+if(im){
+  const I18N = vm.runInNewContext("(" + im[1] + ")", {});
+  check("ja h_fx says one rate is used", /このアプリは1つのレートで概算します/.test(I18N.ja.h_fx));
+  check("ja fxRole says the rate is also the deposit rate for FX gain", /為替差益では、預入時のレートとしても使います/.test(I18N.ja.fxRole));
+  check("en h_fx says one rate is used", /single rate/.test(I18N.en.h_fx));
+  check("ja src_d5 names what it covers", /基礎控除・給与所得控除・所得税の税率は、令和7年分・令和8年分について/.test(I18N.ja.src_d5));
+  check("en src_d5 names what it covers", /for 2025 and 2026 reflect/.test(I18N.en.src_d5));
+  check("ja compound note mentions the selected year", /選んだ年分の控除で計算する概算です/.test(I18N.ja.s3_basisCompound(3)));
+  check("en compound note mentions the selected year", /deductions of the selected tax year/.test(I18N.en.s3_basisCompound(3)));
+  check("en h_taxYear wording", /^The 2026 tax year is the one you file a return for in 2027\./.test(I18N.en.h_taxYear));
+  eq("legacy notice (ja)", I18N.ja.legacyDedNote, "入力の意味が変わりました（基礎控除はアプリが足します）。所得控除を入れ直してください。");
+  // static HTML text must match the ja dictionary for the keys touched in this change
+  for(const k of ["s3_assume","h_fx","src_d5","f_manualDed","h_manualDed","legacyDedNote","f_taxYear","h_taxYear"]){
+    const re = new RegExp('data-i18n(?:-html)?="' + k + '">([\\s\\S]*?)</(?:p|div|span|label)>');
+    const mm = html.match(re);
+    check("static HTML matches dictionary: " + k, !!mm && mm[1] === I18N.ja[k],
+          mm ? "html: " + mm[1].slice(0, 60) : "not found");
+  }
+}
+
 console.log(passed + " passed, " + failed + " failed");
 process.exit(failed ? 1 : 0);
