@@ -156,7 +156,8 @@ check("s3_assume (en) no longer says 480,000", !/¥480,000 basic deduction/.test
 // update dates: five countries re-checked in November 2026, the others as of July 2026 (CRO point 1)
 check("update date names both months (ja)", /src_date:"2026年11月（タイ・トルコ・ジョージア・フィリピン・メキシコ。ほかの国は2026年7月）"/.test(html));
 check("update date names both months (en)", /src_date:"November 2026 \(Thailand, Türkiye, Georgia, the Philippines and Mexico; other countries July 2026\)"/.test(html));
-check("credit agrees with the update date (ja)", /（2026年11月時点。一部の国は2026年7月）/.test(html) && !/（2026年7月時点）/.test(html));
+check("credit agrees with the update date (ja)", (html.match(/（タイなど5か国は2026年11月、ほかの国は2026年7月の時点）/g) || []).length === 2 && !/（2026年7月時点）/.test(html) && !/一部の国は2026年7月/.test(html));
+check("credit agrees with the update date (en)", /\(five countries, including Thailand, as of November 2026; other countries as of July 2026\)\./.test(html) && !/some countries July 2026/.test(html));
 check("no 'as of the update date above' left in ja", !/上の更新日のままです/.test(html));
 check("static update date matches the dictionary", /<strong data-i18n="src_date">2026年11月（タイ・トルコ・ジョージア・フィリピン・メキシコ。ほかの国は2026年7月）<\/strong>/.test(html));
 
