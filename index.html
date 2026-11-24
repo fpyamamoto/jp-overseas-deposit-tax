@@ -609,7 +609,7 @@
             <input type="number" id="fx" value="150" min="0" step="0.0001">
             <span class="unit">円</span>
           </div>
-          <p class="hint"><span data-i18n="h_fx">例：1米ドル＝150円なら 150、1タイバーツ＝4.3円なら 4.3。申告では、利息は受け取った日の仲値（TTM）で円にするのが原則です。このアプリは1つのレートで概算します。</span><span id="fxRoleNote"></span></p>
+          <p class="hint"><span data-i18n="h_fx">例：1米ドル＝150円なら 150、1タイバーツ＝4.3円なら 4.3。申告では、利息は受け取った日の仲値（TTM）で円にするのが原則です。このアプリは、利息をすべてこのレートで円にして概算します。</span><span id="fxRoleNote"></span></p>
         </div>
 
         <!-- optional: FX gain on conversion back to JPY -->
@@ -795,7 +795,7 @@
         </div>
 
         <div class="field hidden" id="manualDedField">
-          <p class="cwarn hidden" id="legacyDedNote" data-i18n="legacyDedNote">入力の意味が変わりました（基礎控除はアプリが足します）。所得控除を入れ直してください。</p>
+          <p class="cwarn hidden" id="legacyDedNote" data-i18n="legacyDedNote">『所得控除（手入力）』の入力の意味が変わりました。基礎控除はアプリが足すので、基礎控除を除いた額を入れ直してください。</p>
           <label for="manualDed" data-i18n="f_manualDed">基礎控除のほかの所得控除の合計（手入力）</label>
           <div class="with-unit">
             <input type="number" id="manualDed" value="0" min="0" step="10000">
@@ -997,7 +997,7 @@ const I18N = {
     payHintSimple:"満期時に利息をまとめて受け取る（単利）。利息は満期の年に一括して課税されます。",
     payHintCompound:"毎年利息を受け取り、税引後の額を元本に再投資する（複利）。利息は毎年課税され、原則として毎年の申告対象になります。",
     f_fx:"想定為替レート（現地通貨1単位＝◯円）",
-    h_fx:"例：1米ドル＝150円なら 150、1タイバーツ＝4.3円なら 4.3。申告では、利息は受け取った日の仲値（TTM）で円にするのが原則です。このアプリは1つのレートで概算します。",
+    h_fx:"例：1米ドル＝150円なら 150、1タイバーツ＝4.3円なら 4.3。申告では、利息は受け取った日の仲値（TTM）で円にするのが原則です。このアプリは、利息をすべてこのレートで円にして概算します。",
     fxRole:"（為替差益では、預入時のレートとしても使います）",
     fx_toggle:"円に戻したときの損益も見る", fx_toggle_sub:"任意。円転しない場合は不要です。",
     f_fxOut:"円転時の為替レート（現地通貨1単位＝◯円）",
@@ -1049,7 +1049,7 @@ const I18N = {
     f_salary:"給与収入（額面・年間）", h_salary:"源泉徴収票の「支払金額」。",
     f_dedMode:"所得控除の見積り方法", ded_auto:"自動", ded_manual:"手入力",
     h_dedMode:"ライトに使う方は「自動」でOK。",
-    legacyDedNote:"入力の意味が変わりました（基礎控除はアプリが足します）。所得控除を入れ直してください。",
+    legacyDedNote:"『所得控除（手入力）』の入力の意味が変わりました。基礎控除はアプリが足すので、基礎控除を除いた額を入れ直してください。",
     f_manualDed:"基礎控除のほかの所得控除の合計（手入力）", h_manualDed:"源泉徴収票の「所得控除の額の合計額」から基礎控除を引いた額など。基礎控除は、選んだ年分と所得からアプリが足します。",
     f_other:"その他の所得（副業・不動産等の所得金額）", h_other:"なければ 0 のまま。",
     s3_from1:"第1段階の計算結果",
@@ -1115,7 +1115,7 @@ const I18N = {
     payHintSimple:"Interest is paid as a lump sum at maturity (simple interest), and taxed in that single year.",
     payHintCompound:"Interest is received each year and reinvested after tax (compound). It is taxed annually, so a return is generally required every year.",
     f_fx:"Assumed FX rate (1 unit of local currency = ¥)",
-    h_fx:"e.g. enter 150 if US$1 = ¥150, or 4.3 if THB 1 = ¥4.3. For a tax return, interest is generally converted at the mid rate (TTM) on the date you receive it. This app uses a single rate for its estimate.",
+    h_fx:"e.g. enter 150 if US$1 = ¥150, or 4.3 if THB 1 = ¥4.3. For a tax return, interest is generally converted at the mid rate (TTM) on the date you receive it. This app converts all interest at this one rate for its estimate.",
     fxRole:" (For the FX gain, this is also used as the rate at deposit.)",
     fx_toggle:"Also show gain/loss on converting back to yen", fx_toggle_sub:"Optional. Skip if you keep the foreign currency.",
     f_fxOut:"FX rate at conversion (1 unit of local currency = ¥)",
@@ -1167,7 +1167,7 @@ const I18N = {
     f_salary:"Employment income (gross, annual)", h_salary:"The gross amount on your withholding slip.",
     f_dedMode:"How to estimate deductions", ded_auto:"Automatic", ded_manual:"Manual",
     h_dedMode:"“Automatic” is fine for a quick estimate.",
-    legacyDedNote:"The meaning of this input has changed (the app now adds the basic deduction). Please re-enter your deductions.",
+    legacyDedNote:"The meaning of the ‘Deductions (manual)’ input has changed. The app now adds the basic deduction, so please re-enter the amount without it.",
     f_manualDed:"Deductions other than the basic deduction (manual)", h_manualDed:"e.g. the total deductions on your withholding slip minus the basic deduction. The app adds the basic deduction for the selected year and your income.",
     f_other:"Other income (side work, property, etc.)", h_other:"Leave at 0 if none.",
     s3_from1:"Calculated in step 1",
@@ -1189,7 +1189,7 @@ const I18N = {
     src_d3:"The credit limit formula and the basis for the three-year carry-forward.",
     src_d4:"Practical information on each country's tax system and withholding rates.",
     src_t5:"Deductions and rates", src_l5:"NTA No.1199 — Basic deduction",
-    src_d5:'Employment income deduction: <a href="https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1410.htm" target="_blank" rel="noopener noreferrer">No.1410</a>; income tax rates: <a href="https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2260.htm" target="_blank" rel="noopener noreferrer">No.2260</a>. The basic deduction, employment income deduction and income tax rates for 2025 and 2026 reflect the FY2026 tax reform (checked November 2026). Withholding rates by country are as of the update date above.',
+    src_d5:'Employment income deduction: <a href="https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1410.htm" target="_blank" rel="noopener noreferrer">No.1410</a>; income tax rates: <a href="https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2260.htm" target="_blank" rel="noopener noreferrer">No.2260</a>. The basic deduction, employment income deduction and income tax rates for 2025 and 2026 reflect tax reforms up to and including the FY2026 reform (checked November 2026). Withholding rates by country are as of the update date above.',
     src_warnTitle:"Three cautions about these rates.",
     src_w1:"<strong>The rates shown are representative values.</strong> A treaty cap on interest can differ within the same country depending on the type of deposit, the nature of the payee, and the conditions for applying the treaty (Thailand ranges 10–25%; the Philippines is 15% in some cases). Pay particular attention to countries with a note.",
     src_w2:"<strong>Tax withheld above a treaty cap may not be creditable in Japan.</strong> Japan's National Tax Agency excludes from the foreign tax credit any amount exceeding what the treaty permits the other country to impose. The excess should generally be reclaimed locally.",
@@ -1723,6 +1723,7 @@ const URL_FIELDS = [
 function buildShareUrl(){
   const p = new URLSearchParams();
   URL_FIELDS.forEach(([k, get]) => {
+    if(omitFromShare(k, legacyDedNote)) return;
     const val = get();
     if(val !== "" && val != null) p.set(k, val);
   });
@@ -1743,6 +1744,11 @@ function isLegacyManualLink(params){
   if(params.get("dm") !== "m") return false;
   const v = parseFloat(params.get("md"));
   return !isNaN(v) && v > 0;
+}
+/* While the notice is on, a shared link must not get "ty": otherwise it
+   would carry the old total (basic deduction included) with no notice. */
+function omitFromShare(key, legacyOn){
+  return legacyOn && key === "ty";
 }
 /* ===== LINK COMPAT END ===== */
 let legacyDedNote = isLegacyManualLink(new URLSearchParams(location.search));

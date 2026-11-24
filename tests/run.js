@@ -189,7 +189,14 @@ else{
   eq("new link (ty), manual, md>0 -> no notice", L("ty=2026&dm=m&md=900000"), false);
   eq("new link (ty=2025), manual -> no notice",  L("ty=2025&dm=m&md=900000"), false);
   eq("no parameters -> no notice",             L(""), false);
+  const omit = vm.runInNewContext(lm[0] + "\n;omitFromShare", {});
+  eq("share omits ty while the notice is on", omit("ty", true), true);
+  eq("share keeps ty once the notice is off", omit("ty", false), false);
+  eq("share keeps md while the notice is on", omit("md", true), false);
+  eq("share keeps dm while the notice is on", omit("dm", true), false);
 }
+check("buildShareUrl skips keys by omitFromShare",
+      /URL_FIELDS\.forEach\(\(\[k, get\]\) => \{\s*if\(omitFromShare\(k, legacyDedNote\)\) return;/.test(html));
 check("notice element exists, hidden by default",
       /<p class="cwarn hidden" id="legacyDedNote" data-i18n="legacyDedNote">/.test(html));
 check("notice shown only in manual mode while the flag is on",
@@ -202,15 +209,16 @@ check("the flag is set before the first compute()",
 /* ---------- 8. reviewed wording (CRO points 1, 2, 3, 6, 7) ---------- */
 if(im){
   const I18N = vm.runInNewContext("(" + im[1] + ")", {});
-  check("ja h_fx says one rate is used", /このアプリは1つのレートで概算します/.test(I18N.ja.h_fx));
+  check("ja h_fx says all interest uses this rate", /このアプリは、利息をすべてこのレートで円にして概算します/.test(I18N.ja.h_fx));
   check("ja fxRole says the rate is also the deposit rate for FX gain", /為替差益では、預入時のレートとしても使います/.test(I18N.ja.fxRole));
-  check("en h_fx says one rate is used", /single rate/.test(I18N.en.h_fx));
+  check("en h_fx says all interest uses this rate", /converts all interest at this one rate/.test(I18N.en.h_fx));
   check("ja src_d5 names what it covers", /基礎控除・給与所得控除・所得税の税率は、令和7年分・令和8年分について/.test(I18N.ja.src_d5));
-  check("en src_d5 names what it covers", /for 2025 and 2026 reflect/.test(I18N.en.src_d5));
+  check("en src_d5 names what it covers (up to and including)", /for 2025 and 2026 reflect tax reforms up to and including the FY2026 reform/.test(I18N.en.src_d5));
   check("ja compound note mentions the selected year", /選んだ年分の控除で計算する概算です/.test(I18N.ja.s3_basisCompound(3)));
   check("en compound note mentions the selected year", /deductions of the selected tax year/.test(I18N.en.s3_basisCompound(3)));
   check("en h_taxYear wording", /^The 2026 tax year is the one you file a return for in 2027\./.test(I18N.en.h_taxYear));
-  eq("legacy notice (ja)", I18N.ja.legacyDedNote, "入力の意味が変わりました（基礎控除はアプリが足します）。所得控除を入れ直してください。");
+  eq("legacy notice (ja)", I18N.ja.legacyDedNote, "『所得控除（手入力）』の入力の意味が変わりました。基礎控除はアプリが足すので、基礎控除を除いた額を入れ直してください。");
+  check("legacy notice (en) names the field", /‘Deductions \(manual\)’/.test(I18N.en.legacyDedNote) && /without it/.test(I18N.en.legacyDedNote));
   // static HTML text must match the ja dictionary for the keys touched in this change
   for(const k of ["s3_assume","h_fx","src_d5","f_manualDed","h_manualDed","legacyDedNote","f_taxYear","h_taxYear"]){
     const re = new RegExp('data-i18n(?:-html)?="' + k + '">([\\s\\S]*?)</(?:p|div|span|label)>');
