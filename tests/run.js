@@ -153,7 +153,12 @@ check("URL field ty exists", /\["ty",/.test(html));
 check("old fixed basic deduction removed", !/salary\*0\.15 \+ 480000/.test(html));
 check("s3_assume no longer says 48万円", !/基礎控除48万円/.test(html));
 check("s3_assume (en) no longer says 480,000", !/¥480,000 basic deduction/.test(html));
-check("withholding-rate update date unchanged (July 2026)", /src_date:"2026年7月"/.test(html) && /src_date:"July 2026"/.test(html));
+// update dates: five countries re-checked in November 2026, the others as of July 2026 (CRO point 1)
+check("update date names both months (ja)", /src_date:"2026年11月（タイ・トルコ・ジョージア・フィリピン・メキシコ。ほかの国は2026年7月）"/.test(html));
+check("update date names both months (en)", /src_date:"November 2026 \(Thailand, Türkiye, Georgia, the Philippines and Mexico; other countries July 2026\)"/.test(html));
+check("credit agrees with the update date (ja)", /（2026年11月時点。一部の国は2026年7月）/.test(html) && !/（2026年7月時点）/.test(html));
+check("no 'as of the update date above' left in ja", !/上の更新日のままです/.test(html));
+check("static update date matches the dictionary", /<strong data-i18n="src_date">2026年11月（タイ・トルコ・ジョージア・フィリピン・メキシコ。ほかの国は2026年7月）<\/strong>/.test(html));
 
 const im = html.match(/const I18N = (\{[\s\S]*?\n\});/);
 if(!im){ check("I18N block found", false); }
@@ -335,9 +340,9 @@ check("row labels wrap on narrow screens", /@media\(max-width:520px\)\{\.lrow \.
   if(im){
     const I18N = vm.runInNewContext("(" + im[1] + ")", {});
     check("src_w1 (ja): no old Thai/Philippine examples", !/タイは条約上10〜25%/.test(I18N.ja.src_w1) && !/フィリピンは一部15%/.test(I18N.ja.src_w1));
-    check("src_w1 (ja): re-checked countries", /タイ・トルコ・ジョージア・フィリピン・メキシコは2026年11月に条約の本文などで確かめ直しました/.test(I18N.ja.src_w1));
+    check("src_w1 (ja): re-checked countries", /タイ・トルコは条約と国内法で、ジョージア・フィリピン・メキシコは条約で、2026年11月に確かめ直しました。ほかの国は2026年7月の時点の値です。/.test(I18N.ja.src_w1));
     check("src_w1 (en): no old examples", !/Thailand ranges 10–25%/.test(I18N.en.src_w1) && !/15% in some cases/.test(I18N.en.src_w1));
-    check("src_lede (ja): domestic rate rule", /タイのように条約の上限が個人に当たらない国や、国内法の率のほうが低い国（香港・マレーシア）は、国内法の率を入れています/.test(I18N.ja.src_lede));
+    check("src_lede (ja): domestic rate rule", /タイのように条約の上限が個人に当たらない国や、国内法の率のほうが低い国（香港・マレーシアなど）は、国内法の率を入れています。国内法の率を確かめていない国もあります。/.test(I18N.ja.src_lede));
     check("src_lede (en): domestic rate rule", /Where the treaty cap does not apply to individuals \(Thailand\)/.test(I18N.en.src_lede));
     check("static src_w1 matches dictionary", (html.match(/data-i18n-html="src_w1">([\s\S]*?)<\/li>/) || [])[1] === I18N.ja.src_w1);
     check("static src_lede has the domestic rate rule", /国内法に優先します。タイのように条約の上限が個人に当たらない国/.test(html));
